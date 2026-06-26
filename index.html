@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 Seedance 分镜工坊</title>
+<style>
+/* ===== CSS Variables ===== */
+:root {
+  --bg: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-input: #13151e;
+  --border: #2a2d3a;
+  --text: #e1e4ed;
+  --text-secondary: #8b8fa5;
+  --accent: #6c5ce7;
+  --accent-hover: #7f6ff0;
+  --accent-text: #fff;
+  --success: #00d68f;
+  --warning: #ffaa00;
+  --error: #ff6b6b;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --transition: 0.2s ease;
+}
+
+[data-theme="light"] {
+  --bg: #f5f6fa;
+  --bg-card: #ffffff;
+  --bg-input: #f0f1f5;
+  --border: #e2e4eb;
+  --text: #1a1c2e;
+  --text-secondary: #6b708a;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+/* ===== Reset ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  transition: background var(--transition), color var(--transition);
+}
+
+/* ===== Header ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+.mode-tabs { display: flex; gap: 2px; background: var(--bg-input); border-radius: var(--radius); padding: 3px; }
+.mode-tab {
+  padding: 6px 16px; border: none; border-radius: 7px; cursor: pointer;
+  font-size: 0.82rem; font-weight: 500; background: transparent; color: var(--text-secondary);
+  transition: all var(--transition);
+}
+.mode-tab.active { background: var(--accent); color: #fff; }
+.mode-tab:hover:not(.active) { color: var(--text); }
+@media (max-width: 480px) {
+  .mode-tab { padding: 5px 10px; font-size: 0.75rem; }
+  .header h1 { font-size: 0.85rem; }
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text); cursor: pointer;
+  font-size: 0.875rem; font-family: inherit;
+  transition: all var(--transition); white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+.btn-icon { padding: 8px; border: none; background: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; border-radius: var(--radius-sm); transition: all var(--transition); }
+.btn-icon:hover { color: var(--text); background: var(--bg-input); }
+
+/* ===== Main Layout ===== */
+.main {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 0;
+  height: calc(100vh - 57px);
+  overflow: hidden;
+}
+
+/* ===== Panels ===== */
+.panel {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+.panel-input { border-right: 1px solid var(--border); }
+.panel-output { background: var(--bg); }
+
+.panel-title {
+  font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 16px;
+}
+
+/* ===== Template Selector ===== */
+.template-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.template-card {
+  padding: 12px; border-radius: var(--radius-sm); border: 2px solid var(--border);
+  cursor: pointer; transition: all var(--transition);
+  background: var(--bg-card); text-align: center;
+}
+.template-card:hover { border-color: var(--accent); }
+.template-card.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-card)); }
+.template-card .tpl-icon { font-size: 1.5rem; margin-bottom: 2px; }
+.template-card .tpl-label { font-size: 0.8rem; font-weight: 600; }
+.template-card .tpl-strategy { font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px; }
+
+/* ===== Form ===== */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+
+/* Upload */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius); padding: 20px;
+  text-align: center; cursor: pointer; transition: all var(--transition);
+  background: var(--bg-input);
+}
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--bg-input)); }
+.upload-zone .upload-hint { color: var(--text-secondary); font-size: 0.85rem; }
+.upload-zone .upload-icon { font-size: 2rem; display: block; margin-bottom: 6px; }
+
+.upload-previews { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.upload-preview {
+  position: relative; width: 64px; height: 64px; border-radius: var(--radius-sm);
+  overflow: hidden; border: 2px solid var(--border);
+}
+.upload-preview img { width: 100%; height: 100%; object-fit: cover; }
+.upload-preview .remove-btn {
+  position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--error); color: #fff; border: none;
+  cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center;
+}
+
+/* Textarea */
+textarea {
+  width: 100%; min-height: 120px; padding: 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text);
+  font-family: inherit; font-size: 0.9rem; line-height: 1.6; resize: vertical;
+  transition: border-color var(--transition); outline: none;
+}
+textarea:focus { border-color: var(--accent); }
+textarea::placeholder { color: var(--text-secondary); }
+
+/* Selects */
+.param-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+select {
+  width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text);
+  font-family: inherit; font-size: 0.875rem; cursor: pointer; outline: none;
+  appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%238b8fa5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  transition: border-color var(--transition);
+}
+select:focus { border-color: var(--accent); }
+
+.generate-btn {
+  width: 100%; padding: 14px; border-radius: var(--radius); border: none;
+  background: var(--accent); color: #fff; font-size: 1rem; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all var(--transition);
+  letter-spacing: 0.02em; margin-top: 4px;
+}
+.generate-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+.generate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.generate-btn.loading { pointer-events: none; }
+
+/* ===== Output Panel ===== */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; color: var(--text-secondary); text-align: center; gap: 12px;
+}
+.empty-state .empty-icon { font-size: 3rem; opacity: 0.5; }
+
+/* Shot cards */
+.shot-list { display: flex; flex-direction: column; gap: 16px; }
+.shot-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; transition: border-color var(--transition);
+}
+.shot-card:hover { border-color: var(--accent); }
+.shot-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--bg-input);
+}
+.shot-number {
+  font-weight: 700; font-size: 0.85rem; color: var(--accent);
+}
+.shot-meta { font-size: 0.8rem; color: var(--text-secondary); display: flex; gap: 12px; }
+.shot-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.shot-body { padding: 16px; }
+.shot-field { margin-bottom: 12px; }
+.shot-field:last-child { margin-bottom: 0; }
+.shot-field-label {
+  font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
+}
+.shot-field-value { font-size: 0.9rem; line-height: 1.5; }
+.shot-field-value.prompt-en {
+  background: var(--bg-input); padding: 10px 14px; border-radius: var(--radius-sm);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.8rem;
+  border: 1px solid var(--border); word-break: break-word;
+}
+
+.output-actions {
+  display: flex; gap: 8px; margin-top: 20px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.output-actions .btn { flex: 1; justify-content: center; }
+
+.output-title {
+  font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;
+}
+.output-subtitle {
+  font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 20px;
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+
+.global-constraints {
+  margin-top: 20px; padding: 14px 16px; background: color-mix(in srgb, var(--warning) 8%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, var(--border));
+  border-radius: var(--radius-sm); font-size: 0.8rem;
+}
+.global-constraints strong { color: var(--warning); }
+
+.narrative-arc {
+  margin-top: 12px; padding: 10px 16px; background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+  border-left: 3px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.82rem; color: var(--text-secondary);
+}
+
+.production-notes {
+  margin-top: 12px; padding: 10px 16px; background: color-mix(in srgb, var(--success) 6%, var(--bg-card));
+  border-left: 3px solid var(--success); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.82rem; color: var(--text-secondary);
+}
+
+.usage-tip {
+  margin-top: 12px; padding: 10px 16px; background: color-mix(in srgb, var(--warning) 6%, var(--bg-card));
+  border-left: 3px solid var(--warning); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.82rem; color: var(--text-secondary);
+}
+
+.variant-list { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+
+.variant-card {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; transition: border-color var(--transition);
+}
+.variant-card:hover { border-color: var(--accent); }
+
+.variant-header {
+  padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--accent) 4%, var(--bg-input));
+}
+.variant-badge {
+  font-weight: 600; font-size: 0.9rem; color: var(--accent);
+  white-space: nowrap;
+}
+.variant-tagline {
+  font-size: 0.78rem; color: var(--text-secondary);
+}
+
+.variant-meta {
+  padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.75rem;
+  color: var(--text-secondary); border-bottom: 1px solid var(--border);
+}
+.variant-meta span { white-space: nowrap; }
+
+.variant-body { padding: 12px 16px; }
+
+/* ===== Status Bar ===== */
+.status-bar {
+  padding: 6px 16px; text-align: center; font-size: 0.78rem; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+  border-top: 1px solid var(--border);
+  min-height: 32px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.status-bar.error { color: var(--error); background: color-mix(in srgb, var(--error) 8%, var(--bg-card)); }
+.spinner {
+  width: 14px; height: 14px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.6s linear infinite; display: none;
+}
+.spinner.active { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; opacity: 0; pointer-events: none; transition: opacity var(--transition);
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; max-width: 460px; width: 90%; box-shadow: var(--shadow);
+  max-height: 80vh; overflow-y: auto;
+}
+.modal h2 { font-size: 1.1rem; margin-bottom: 20px; }
+.modal .form-group { margin-bottom: 14px; }
+.modal input[type="text"],
+.modal input[type="password"] {
+  width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text);
+  font-family: inherit; font-size: 0.875rem; outline: none;
+  transition: border-color var(--transition);
+}
+.modal input:focus { border-color: var(--accent); }
+.modal .key-row { display: flex; gap: 6px; }
+.modal .key-row input { flex: 1; }
+.modal .model-info {
+  font-size: 0.8rem; color: var(--text-secondary); padding: 8px 12px;
+  background: var(--bg-input); border-radius: var(--radius-sm);
+}
+.modal .model-info code { color: var(--accent); font-size: 0.85rem; }
+.modal .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* ===== Toast ===== */
+.toast-container {
+  position: fixed; top: 70px; right: 20px; z-index: 300;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  padding: 12px 20px; border-radius: var(--radius-sm); font-size: 0.85rem;
+  animation: slideInRight 0.3s ease; box-shadow: var(--shadow);
+  max-width: 360px; color: #fff; font-weight: 500;
+}
+.toast.success { background: #00a86b; }
+.toast.error { background: #e74c3c; }
+.toast.info { background: var(--accent); }
+@keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
+  .panel-input { border-right: none; border-bottom: 1px solid var(--border); max-height: none; }
+  .panel-output { min-height: 60vh; }
+  .template-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .header h1 { font-size: 1rem; }
+}
+@media (max-width: 480px) {
+  .template-grid { grid-template-columns: 1fr 1fr; }
+  .param-row { grid-template-columns: 1fr; }
+  .panel { padding: 14px 12px; }
+  .header { padding: 10px 12px; }
+  .output-actions { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <h1 id="headerTitle">🎬 Seedance 分镜工坊</h1>
+  <div class="mode-tabs" id="modeTabs">
+    <button class="mode-tab active" data-mode="video">🎬 视频</button>
+    <button class="mode-tab" data-mode="image">📷 图片</button>
+  </div>
+  <div class="header-actions">
+    <button class="btn-icon" id="themeToggle" title="切换深色/浅色主题">🌙</button>
+    <button class="btn btn-sm" id="settingsBtn">⚙️ 设置</button>
+  </div>
+</header>
+
+<!-- Main -->
+<div class="main">
+  <!-- Input Panel -->
+  <div class="panel panel-input" id="inputPanel">
+    <div class="panel-title">📝 输入区</div>
+
+    <!-- Template Selector -->
+    <div class="form-group">
+      <label class="form-label">预设模板</label>
+      <div class="template-grid" id="templateGrid"></div>
+    </div>
+
+    <!-- Image Upload -->
+    <div class="form-group">
+      <label class="form-label">📎 上传参考截图（可选）</label>
+      <div class="upload-zone" id="uploadZone">
+        <span class="upload-icon">🖼️</span>
+        <span class="upload-hint">拖拽图片到此处，或点击上传</span>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      <div class="upload-previews" id="uploadPreviews"></div>
+    </div>
+
+    <!-- Script Input -->
+    <div class="form-group">
+      <label class="form-label" for="scriptInput">📖 文案 / 剧本描述</label>
+      <textarea id="scriptInput" placeholder="描述你想生成的视频内容，例如：&#10;一个女孩站在雨夜的霓虹灯下，她缓缓抬起手接住落下的雨滴，眼神中带着释然的微笑。&#10;&#10;或者输入剧本段落，我们会自动拆解为分镜..."></textarea>
+    </div>
+
+    <!-- Params -->
+    <div class="form-group">
+      <label class="form-label">参数设置</label>
+      <div class="param-row" id="paramRow">
+        <select id="durationSelect">
+          <option value="5">⏱ 5 秒</option>
+          <option value="10">⏱ 10 秒</option>
+          <option value="15" selected>⏱ 15 秒</option>
+        </select>
+        <select id="aspectSelect">
+          <option value="16:9" selected>📐 横屏 16:9</option>
+          <option value="9:16">📐 竖屏 9:16</option>
+          <option value="1:1">📐 方图 1:1</option>
+          <option value="2.35:1">📐 宽银幕 2.35:1</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Generate Button -->
+    <button class="generate-btn" id="generateBtn">🎬 生成分镜</button>
+  </div>
+
+  <!-- Output Panel -->
+  <div class="panel panel-output" id="outputPanel">
+    <div class="empty-state" id="emptyState">
+      <span class="empty-icon">🎥</span>
+      <p>在左侧输入文案，点击「生成分镜」<br>即可看到结构化的分镜表</p>
+    </div>
+    <div id="outputContent" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar" id="statusBar">
+  <span class="spinner" id="spinner"></span>
+  <span id="statusText">就绪 — 请先配置 API Key（点击右上角 ⚙️ 设置）</span>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>⚙️ 设置</h2>
+    <div class="form-group">
+      <label class="form-label">模型信息</label>
+      <div class="model-info">
+        分镜生成：<code>deepseek-v4-pro</code><br>
+        截图分析：<code>qwen-vl-plus</code>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔑 DeepSeek API Key</label>
+      <div class="key-row">
+        <input type="password" id="deepseekKey" placeholder="sk-...">
+        <button class="btn btn-sm" id="toggleDeepseekKey" title="显示/隐藏">👁️</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔑 Qwen-VL API Key（DashScope）</label>
+      <div class="key-row">
+        <input type="password" id="qwenKey" placeholder="sk-...">
+        <button class="btn btn-sm" id="toggleQwenKey" title="显示/隐藏">👁️</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="closeSettings">取消</button>
+      <button class="btn btn-primary" id="saveSettings">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============================================================
+// Seedance 分镜工坊 — 全部 JavaScript 逻辑
+// ============================================================
+
+// ===== 配置常量 =====
+const CONFIG = {
+  DEEPSEEK_API: 'https://api.deepseek.com/v1/chat/completions',
+  DEEPSEEK_MODEL: 'deepseek-v4-pro',
+  QWEN_API: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+  QWEN_MODEL: 'qwen-vl-plus',
+  MAX_IMAGES: 9
+};
+
+// ===== 预设模板 =====
+const TEMPLATES = {
+  product: {
+    label: '📦 产品广告',
+    icon: '📦',
+    strategy: '干净布光 + 缓慢环绕 + 微距细节',
+    defaults: {
+      style: 'commercial product cinematography',
+      camera: 'slow orbit shot',
+      shotSize: 'medium close-up',
+      focalLength: 'macro',
+      lighting: 'clean studio lighting, soft key light from above, no shadows on product'
+    }
+  },
+  narrative: {
+    label: '🎭 人物叙事',
+    icon: '🎭',
+    strategy: '分时轴 + 情绪渐进 + 电影写实',
+    defaults: {
+      style: 'Wong Kar-Wai film style',
+      camera: 'slow dolly-in',
+      shotSize: 'medium',
+      focalLength: '35mm',
+      lighting: 'natural window light, warm amber tone, soft shadows'
+    }
+  },
+  ugc: {
+    label: '📱 UGC/手机感',
+    icon: '📱',
+    strategy: '手持晃动 + 自然光 + 无调色感',
+    defaults: {
+      style: 'natural vlog style, ungraded',
+      camera: 'handheld',
+      shotSize: 'medium',
+      focalLength: '24mm wide',
+      lighting: 'available light only, no artificial lighting, natural white balance'
+    }
+  },
+  onetake: {
+    label: '🎥 一镜到底',
+    icon: '🎥',
+    strategy: '追踪镜头 + 空间穿越 + 不切镜',
+    defaults: {
+      style: 'Denis Villeneuve cinematography',
+      camera: 'one continuous tracking shot, no cuts',
+      shotSize: 'medium-wide',
+      focalLength: '28mm',
+      lighting: 'motivated lighting, slow reveal, dark corners pulling to light'
+    }
+  },
+  musicvideo: {
+    label: '🎵 音乐卡点',
+    icon: '🎵',
+    strategy: '@音频 + 节奏同步 + 画面切换',
+    defaults: {
+      style: '90s Hong Kong cinema',
+      camera: 'whip pan',
+      shotSize: 'varies per beat',
+      focalLength: 'mixed',
+      lighting: 'neon lighting, high contrast, saturated colors, night'
+    }
+  },
+  vfx: {
+    label: '✨ 视觉特效',
+    icon: '✨',
+    strategy: '明确物理规则 + 变化过程 + 锁定主体',
+    defaults: {
+      style: 'Blade Runner 2049 visual style',
+      camera: 'slow dolly-in',
+      shotSize: 'medium-wide',
+      focalLength: '35mm',
+      lighting: 'volumetric lighting, atmospheric haze, blue-orange color contrast'
+    }
+  }
+};
+
+// ===== 图片模板配置 =====
+const IMAGE_TEMPLATES = {
+  product: {
+    label: '📦 产品摄影',
+    icon: '📦',
+    strategy: '干净布光 + 多角度微距 + 商业修图质感',
+    defaults: {
+      style: 'C4D product render, Octane render',
+      composition: 'center composition, negative space for copy',
+      shotSize: 'medium close-up',
+      focalLength: 'macro 100mm',
+      lighting: 'clean studio lighting, soft diffused key light from top-left, rim light for edge definition, dark neutral background',
+      camera_angle: '45° overhead angle',
+      variants: ['干净白色背景商业片', '暗调质感高级感', '生活场景自然光']
+    }
+  },
+  portrait: {
+    label: '🎭 肖像写真',
+    icon: '🎭',
+    strategy: '人物情绪 + 布光造型 + 电影级肤色',
+    defaults: {
+      style: 'Peter Lindbergh style, Kodak Portra 400',
+      composition: 'rule of thirds, eye on upper third line',
+      shotSize: 'medium close-up',
+      focalLength: '85mm',
+      lighting: 'Rembrandt lighting, window light from left, warm 3800K, soft shadow falloff on the right side of face',
+      camera_angle: 'eye level',
+      variants: ['黑白情绪肖像', '窗边自然光写真', '棚拍商业肖像']
+    }
+  },
+  scene: {
+    label: '🏞️ 场景氛围',
+    icon: '🏞️',
+    strategy: '空间叙事 + 环境情绪 + 电影级色调',
+    defaults: {
+      style: 'Denis Villeneuve cinematography, Cinestill 800T',
+      composition: 'wide establishing, leading lines to distant focal point',
+      shotSize: 'wide',
+      focalLength: '24mm',
+      lighting: 'golden hour, sun low at horizon, warm directional light, long shadows, atmospheric haze',
+      camera_angle: 'eye level',
+      variants: ['金色时刻温暖氛围', '阴雨天冷淡情绪', '霓虹都市夜景']
+    }
+  },
+  artwork: {
+    label: '🎨 艺术创作',
+    icon: '🎨',
+    strategy: '画派锚定 + 视觉风格 + 艺术表达',
+    defaults: {
+      style: 'oil painting impasto technique, Monet color palette',
+      composition: 'rule of thirds, dynamic diagonal flow',
+      shotSize: 'medium-wide',
+      focalLength: '35mm',
+      lighting: 'soft overcast natural light, muted tones, pastel color harmony',
+      camera_angle: 'eye level',
+      variants: ['油画质感', '水墨画意境', '浮世绘版画', '赛博朋克数字艺术']
+    }
+  },
+  poster: {
+    label: '📰 中文海报',
+    icon: '📰',
+    strategy: 'Seedream 中文文字 + 排版设计 + 视觉冲击',
+    defaults: {
+      style: 'modern graphic design, minimalist poster, magazine editorial quality',
+      composition: 'bold centered composition, text-safe zone top and bottom',
+      shotSize: 'medium',
+      focalLength: '50mm',
+      lighting: 'dramatic rim light, high contrast, graphic shadow shapes',
+      camera_angle: 'eye level',
+      variants: ['极简设计感', '国潮新中式', '赛博朋克科技感', '日系杂志风']
+    }
+  },
+  ugc: {
+    label: '📱 UGC实拍',
+    icon: '📱',
+    strategy: '手机拍摄感 + 无调色 + 真实生活',
+    defaults: {
+      style: 'natural snapshot, unedited JPEG, phone camera look',
+      composition: 'casual framing, slight tilt, snapshot aesthetic',
+      shotSize: 'medium',
+      focalLength: '28mm',
+      lighting: 'available light only, mixed room lighting, no artificial modifiers',
+      camera_angle: 'slightly high angle, phone in hand',
+      variants: ['日间自然光随手拍', '夜间室内灯光直出', '户外街拍无滤镜']
+    }
+  }
+};
+
+// ===== Skill 规则库（System Prompt 用） =====
+function buildSystemPrompt(templateDefaults, styleAnalysis, params) {
+  const templateInfo = templateDefaults ? `
+[STRATEGY] ${templateDefaults.strategy}
+Style: ${templateDefaults.style} | Preferred Camera: ${templateDefaults.camera}
+Shot Size: ${templateDefaults.shotSize} | Focal: ${templateDefaults.focalLength}
+Lighting: ${templateDefaults.lighting}` : '';
+
+  const styleInfo = styleAnalysis ? `
+[CRITICAL] Reference Image Visual Style (apply to ALL shots):
+${styleAnalysis}` : '';
+
+  const shotCount = params.duration <= 5 ? '1 shot' : params.duration <= 10 ? '2-3 shots' : '3-5 shots';
+  const shotDuration = params.duration <= 5 ? '4-5s each' : '3-5s each';
+
+  return `You are a professional AI video generation cinematographer. You translate creative briefs into precise, structured video prompts that a text-to-video AI model can execute consistently.
+
+Your guiding principle: Write like a director briefing a DP (Director of Photography). Be specific, be visual, be concise. Every word must earn its place.
+
+═══════════════════════════════════════════
+1. FIVE-DIMENSION ARCHITECTURE (first 20-30 words carry the most weight)
+═══════════════════════════════════════════
+
+[1] SUBJECT — Who/what is in the frame. Lock the visual anchor immediately.
+    Bad: "A scene showing someone in a place"
+    Good: "A young woman in a beige trench coat"
+
+[2] ACTION — Specific, visible, SLOW verb phrases in present tense.
+    Write for 15 seconds max. 3-5 key actions for a full 15s sequence.
+    ❌ "dances" / "walks" / "fights" / "celebrates" / "shows emotion"
+    ✅ "slowly turns her head" / "gently lifts a teacup" / "steps forward delicately"
+    ✅ "fingers lightly brush the fabric" / "a subtle smile forms at the corner of the mouth"
+    Modifiers to use: slowly, gently, lightly, subtly, delicately, gradually, naturally, smoothly
+
+[3] CAMERA — ONE shot size + ONE movement verb + focal length hint + camera angle.
+    ⚠️ ONE movement only. "Dolly in while panning" = chaos. The model will randomly pick one.
+
+[4] ENVIRONMENT & LIGHTING — Location, materials, weather, time of day.
+    Light source direction + color temperature + atmosphere.
+    Example: "Late afternoon window light from the left, warm 4000K, soft shadows, dusty air"
+
+[5] STYLE ANCHOR — 1-2 director/film name references (never more than 2).
+    A director's name pulls their entire aesthetic system — more efficient than listing adjectives.
+
+═══════════════════════════════════════════
+2. ACTION WRITING IRON RULES
+═══════════════════════════════════════════
+
+• Every action must be VISIBLE — something the camera can capture.
+• Every action must be SLOW — slow motion looks cinematic; fast movement breaks AI video.
+• Chain actions naturally: "She picks up the cup, brings it to her lips, pauses, then takes a small sip."
+• For emotional scenes: describe facial micro-expressions, not internal feelings.
+  ❌ "He feels sad"
+  ✅ "His gaze drops, jaw tightens briefly, then he exhales and looks away"
+
+═══════════════════════════════════════════
+3. DURATION & COMPLEXITY MATCHING
+═══════════════════════════════════════════
+
+• 4-5s total → 1 shot: one subject + one action + one camera move + one mood
+• 10s total → 2-3 shots: narrative arc with clear progression
+• 15s total → 3-5 shots: structured multi-beat sequence
+
+Target: ${shotCount}, ${shotDuration}
+
+For 10s+ videos, use a time-axis breakdown per shot:
+"0-3s: medium shot, subject enters frame. 3-7s: slow push-in to close-up, key action. 7-10s: hold on reaction, fade cue."
+
+Narrative arc template (apply when ≥3 shots):
+• Shot 1 — ESTABLISHING: environment/atmosphere, wider shot
+• Shot 2-3 — DEVELOPMENT: subject enters, tension builds, medium shots
+• Shot 4 — CLIMAX: key action/emotional peak, close-up
+• Shot 5 — RESOLUTION: aftermath/linger, pull back
+
+Adjacent shots must NOT jump more than 2 shot-size levels (no extreme close-up → wide suddenly).
+
+═══════════════════════════════════════════
+4. CAMERA LANGUAGE REFERENCE
+═══════════════════════════════════════════
+
+MOVEMENTS (pick exactly ONE per shot):
+• slow dolly-in / push-in — intimacy, focus, tension building
+• slow dolly-out / pull-back reveal — expanding context, isolation, ending
+• orbit shot — product showcase, epic moments, 360° awareness
+• tracking shot — following action, walking, journey
+• pan left/right — scanning environment, reveal
+• tilt up/down — scale (up), vulnerability (down)
+• handheld — documentary realism, urgency, POV
+• Steadicam / gimbal-smooth — floating elegance, following
+• whip pan — energy, transition, music-video pace
+• Hitchcock zoom / dolly zoom — psychological shock, vertigo
+• first-person POV — immersion, gaming, experience
+• FPV drone shot — epic scale, landscape, speed
+• locked tripod / static shot — stillness, tension, observation
+• rack focus — attention shift between foreground/background
+• one continuous take — no cuts, spatial journey, virtuosity
+
+SHOT SIZES (from tightest to widest):
+extreme close-up → close-up → medium close-up → medium → medium-wide → wide → establishing
+
+CAMERA ANGLES:
+• eye level — neutral, natural, relatable
+• low angle — power, dominance,压迫感, heroic
+• high angle — fragility,俯瞰, vulnerability
+• overhead / top-down — God's-eye, product flat-lay, pattern
+• 45° overhead orbit — classic product showcase
+• Dutch angle — unease, disorientation (use sparingly)
+
+FOCAL LENGTH FEEL:
+• wide-angle (~24-28mm) — spatial depth,环境叙事, exaggerated perspective
+• standard (~35-50mm) — natural human eye, documentary
+• telephoto (~85mm+) — compression, subject isolation, background blur, cinematic
+• macro — extreme detail, texture, product shots
+
+═══════════════════════════════════════════
+5. STYLE ANCHOR ENCYCLOPEDIA (pick 1, max 2)
+═══════════════════════════════════════════
+
+• Wong Kar-Wai film style → handheld, step-printing, neon warm tones, shallow DOF, melancholic romance
+• Wes Anderson symmetric composition → high saturation, centered framing, pastel color blocks, storybook precision
+• Denis Villeneuve cinematography → cold palette,大量 negative space, slow dolly, monumental scale, atmospheric dread
+• Blade Runner 2049 visual style → cyberpunk, blue-orange color contrast, volumetric light beams, rain, holographic reflections
+• BBC nature documentary style → telephoto compression, shallow DOF, natural light only, slow motion, observational
+• Christopher Nolan style → IMAX texture, cross-cutting tension, practical effects, grounded epic scale
+• Studio Ghibli aesthetic → soft hand-drawn quality, natural greens and earth tones, warm golden light, peaceful
+• 90s Hong Kong cinema → neon lights, film grain, handheld energy, green-cyan color cast, gritty streets
+• Makoto Shinkai style → hyper-detailed sky rendering, lens flare, warm sunset gradients, emotional landscapes
+• commercial product cinematography → clean studio lighting, high-key, macro detail, reflective surfaces, dark background, premium
+• Terrence Malick style → golden hour, Steadicam, whispered intimacy, nature inserts, floating camera
+• David Fincher style → precise dolly, desaturated green palette, low-key tension, controlled stillness
+
+═══════════════════════════════════════════
+6. @ REFERENCE SYNTAX (when user mentions images/video)
+═══════════════════════════════════════════
+
+• @Image1 as character reference → lock character appearance across all shots
+• @Image1 as first frame → start from this exact composition
+• @Image2 as last frame → end at this exact composition
+• Scene reference @Image3 → match the location/set design
+• Camera movement reference @Video1 → replicate the exact camera motion
+• Action reference @Video1 → match the performance timing and movement style
+• When @ references are present, keep text prompts SHORTER — the media carries the visual details.
+
+═══════════════════════════════════════════
+7. CROSS-SHOT CONSISTENCY RULES
+═══════════════════════════════════════════
+
+• Character lock: same person, same clothing, same hairstyle across ALL shots. If Shot 1 describes "black hair, glasses, gray shirt", every subsequent shot must repeat these details.
+• Lighting consistency: if Shot 1 has "window light from left, warm 4000K", all shots maintain the same light direction and color temperature.
+• Color palette: all shots use the SAME style anchor — do not switch from "Wong Kar-Wai" to "Blade Runner" mid-sequence.
+• Shot-size progression: smooth stepping, never jump more than 2 levels between adjacent shots.
+• Transition: default to hard cut unless a specific transition is requested.
+
+═══════════════════════════════════════════
+8. CONSTRAINT TEMPLATES (always include 3-5, select by scene type)
+═══════════════════════════════════════════
+
+[CORE — always include]:
+• Character face stable, no facial deformation, normal human proportions
+• Natural smooth motion throughout, no blur, no flicker, no ghosting
+• No text overlay, no watermark, no floating UI elements
+
+[CHARACTER scenes — add]:
+• No extra characters appearing, no crowd, no background people morphing
+• No extra fingers, no deformed hands, no warped limbs
+• Facial features clear and stable, eyes and mouth do not distort
+
+[PRODUCT scenes — add]:
+• Product shape stays accurate, no warping or morphing
+• Material textures remain crisp and realistic
+• No logos, no labels, no recognizable brands
+• Reduce motion amplitude to prevent product deformation
+
+[ENVIRONMENT scenes — add]:
+• No rapid zoom, no whip pan, no Dutch angle (unless specified)
+• No floating objects, no physics breaking
+• Architecture and geometry remain stable, no warping
+
+[GENERAL additions]:
+• No recognizable logos, brands, or trademarks
+• Hold final frame for 2 seconds for clean edit point
+
+═══════════════════════════════════════════
+9. COMMON PROBLEMS & QUICK FIXES (reference when diagnosing)
+═══════════════════════════════════════════
+
+Problem: Product shape changing → Fix: Add "keep product shape accurate", reduce motion amplitude
+Problem: Camera instruction ignored → Fix: Move camera instruction earlier in the prompt (first 20 words)
+Problem: Image feels flat/平庸 → Fix: Add specific time-of-day, light source direction, and a style anchor
+Problem: Character unstable → Fix: Add @image reference, simplify subject description, pull back from close-up to medium shot
+Problem: Motion jittery/too fast → Fix: Replace "handheld" with "Steadicam/gimbal-smooth", specify speed as "slowly/gradually"
+Problem: Style/color drift → Fix: Use one stronger style anchor, delete extra adjectives
+
+═══════════════════════════════════════════
+10. EXECUTION PARAMETERS
+═══════════════════════════════════════════
+
+• Target duration: ${params.duration}s | Aspect ratio: ${params.aspect} | Shot plan: ${shotCount}
+• Each prompt_en: 50-80 words, structured as Subject → Action → Camera → Lighting → Style → Constraints${templateInfo}${styleInfo}
+
+═══════════════════════════════════════════
+OUTPUT FORMAT — Return ONLY valid JSON (no markdown fences, no extra text):
+═══════════════════════════════════════════
+
+{
+  "title": "descriptive Chinese title capturing the essence",
+  "total_duration_sec": ${params.duration},
+  "aspect_ratio": "${params.aspect}",
+  "style_anchor": "the 1-2 style anchors used",
+  "narrative_arc": "one-line Chinese description of the story curve",
+  "shots": [
+    {
+      "id": 1,
+      "shot_name": "Chinese shot label e.g. 建立镜头 / 高潮 / 收尾",
+      "description_cn": "Detailed Chinese description: what happens, how it looks, the mood, lighting, camera behavior",
+      "prompt_en": "English prompt, 50-80 words. Structure: [Subject] → [Slow Action] → [Camera: shot size + movement + focal] → [Lighting: direction + color temp + atmosphere] → [Style anchor] → [Constraints]",
+      "camera_movement": "one camera movement in English",
+      "shot_size": "shot size in English",
+      "camera_angle": "camera angle in English",
+      "focal_length": "focal length e.g. 24mm, 35mm, 85mm, macro",
+      "duration_sec": 5,
+      "time_mark": "0-Xs (which segment this shot occupies)",
+      "constraints": ["scene-specific constraint 1", "constraint 2"]
+    }
+  ],
+  "global_constraints": [
+    "Character face stable, no facial deformation, normal human proportions across all shots",
+    "Natural smooth motion, no blur, no flicker, no ghosting in every shot",
+    "No text overlay, no watermark, no floating UI",
+    "Consistent lighting direction and color palette across all shots"
+  ],
+  "production_notes": "One-line Chinese note: suggested music mood, edit pace, or post-production tip"
+}`;
+}
+
+// ===== 图片模式系统提示词 =====
+function buildImageSystemPrompt(templateDefaults, styleAnalysis) {
+  const templateInfo = templateDefaults ? `
+[STRATEGY] ${templateDefaults.strategy}
+Style: ${templateDefaults.style} | Composition: ${templateDefaults.composition}
+Shot: ${templateDefaults.shotSize} | Focal: ${templateDefaults.focalLength}
+Lighting: ${templateDefaults.lighting} | Angle: ${templateDefaults.camera_angle}
+Variants to produce: ${(templateDefaults.variants || ['方案A','方案B','方案C']).join(' / ')}` : '';
+
+  const styleInfo = styleAnalysis ? `
+[CRITICAL] Reference Image Visual Style (apply to ALL variants):
+${styleAnalysis}` : '';
+
+  return `You are a world-class AI image generation prompt engineer — the equivalent of a Director of Photography briefing a still photographer. Your specialty is Seedream (即梦), a Chinese AI image model with exceptional Chinese text rendering and cinematic visual quality.
+
+Your guiding principle: A still image is one frozen frame — every pixel must earn its place. No motion to cover flaws. No time to dilute. Clarity > poetry. Precision > vibes.
+
+═══════════════════════════════════════════
+1. FIVE-DIMENSION ARCHITECTURE FOR STILL IMAGES (first 25-30 words carry the most weight)
+═══════════════════════════════════════════
+
+[1] SUBJECT — Who/what is in the frame. Lock immediately.
+    Describe: appearance, clothing, materials, textures, expression.
+    Bad: "A person in a room"
+    Good: "A young Chinese woman with shoulder-length black hair, wearing a cream linen blouse"
+
+[2] POSE / DECISIVE MOMENT — The frozen gesture or instant captured.
+    ⚠️ This is THE critical difference from video prompts. No "slowly turns" — it's "head mid-turn".
+    ❌ "She is dancing" / "He walks" / "They talk"
+    ✅ "Skirt fabric frozen mid-twirl, hair suspended in motion"
+    ✅ "Eyes half-closed, lips slightly parted, caught mid-breath"
+    ✅ "Fingertips hovering just above the water surface, about to touch"
+    Key trick: Use "frozen," "captured at the moment of," "mid-," "suspended"
+
+[3] COMPOSITION — Shot size + framing rule + camera angle + focal length.
+    Framing rules to use:
+    • Rule of thirds — natural balance, most versatile
+    • Center composition — power, symmetry, product focus
+    • Leading lines — depth, environment pulling toward subject
+    • Negative space — isolation, minimalism, magazine layout
+    • Frame within a frame — window/doorway, layered depth
+    • Diagonal — dynamic energy, tension
+    • Golden spiral — organic flow, classical beauty
+    • Flat lay / overhead — product, food, pattern
+
+[4] LIGHTING & ENVIRONMENT — Light source direction + quality + color temp + atmosphere.
+    Lighting setups (name them — they evoke the entire setup):
+    • Rembrandt lighting — triangle of light under the eye, dramatic, portraits
+    • Butterfly / Paramount — symmetric butterfly shadow under nose, beauty
+    • Loop lighting — small nose shadow, most common, flattering
+    • Split lighting — half face lit, half dark, intense
+    • Rim / edge lighting — subject outlined against dark background
+    • Window light — soft directional, natural, timeless
+    • Golden hour — warm, long shadows, magic
+    • Overcast — soft, shadowless, muted colors
+    Always specify: light direction (left/right/top/back), color temp (warm 3200K / neutral 5500K / cool 7000K), atmosphere (dusty air, fog, clear).
+
+[5] STYLE & MEDIUM — ONE anchor (photographer / film stock / art movement / render engine). Never mix.
+
+═══════════════════════════════════════════
+2. STYLE ANCHOR ENCYCLOPEDIA (pick 1, max 2)
+═══════════════════════════════════════════
+
+PHOTOGRAPHERS (pull their entire lighting + mood system):
+• Annie Leibovitz style → dramatic, cinematic lighting, vivid color, heroic posing
+• Peter Lindbergh style → raw black & white, minimal makeup, honest, grainy
+• Tim Walker style → whimsical, oversized props, pastel, English countryside light
+• Gregory Crewdson style → cinematic suburban surrealism, elaborate lighting setups, still unease
+• Vivian Maier style → street photography, natural light, square format, quiet observation
+• 陈漫 style → high-fashion Chinese aesthetic, bold color, futuristic, flawless skin
+
+FILM STOCKS (pull color science + grain):
+• Kodak Portra 400 → warm skin tones, pastel colors, fine grain, portrait
+• Fuji Velvia 50 → vivid saturation, cool greens, landscape, punchy
+• Cinestill 800T → tungsten, halation around lights, cinematic night, neon
+• Kodak Tri-X 400 → black & white, classic grain, reportage, timeless
+• Fuji Pro 400H → soft pastel, Japanese wedding, flat light friendly
+
+ART MOVEMENTS:
+• Oil painting impasto → visible brushstrokes, rich texture, Rembrandt light
+• Chinese ink wash / 水墨画 → flowing ink, negative space, mountain mist
+• Ukiyo-e woodblock → flat colors, bold outlines, Japanese aesthetic
+• Art Deco → geometric, gold, symmetry, 1920s luxury
+• Cyberpunk digital art → neon, chrome, rain-slicked streets, hologram
+
+RENDER ENGINES:
+• Octane render → photoreal, specular highlights, product
+• Unreal Engine 5 → real-time, atmospheric, game cinematic
+• C4D product render → clean, studio, commercial
+• Blender cycles → warm GI, natural, art-forward
+
+SEEDREAM-SPECIFIC STRENGTHS:
+• Chinese text rendering — the BEST among all AI image models. When the user needs Chinese characters, titles, or slogans in the image, lean into this. Describe the text content, font style (serif/sans-serif/brush/handwritten), size, and placement.
+• Multi-style fusion — Seedream handles mixed aesthetics well (e.g., "oil painting style but with cyberpunk color palette")
+
+═══════════════════════════════════════════
+3. COMPOSITION & LENS REFERENCE
+═══════════════════════════════════════════
+
+SHOT SIZES: extreme close-up → close-up → medium close-up → medium → medium-wide → wide → establishing
+
+CAMERA ANGLES: eye level | low angle (power) | high angle (vulnerability) | overhead/top-down | 45° angle | Dutch angle
+
+FOCAL LENGTH & PERSPECTIVE:
+• 14-24mm ultra-wide → exaggerated depth, landscape, architecture
+• 28-35mm wide → environmental portraits, street, context
+• 50mm standard → natural human eye, documentary
+• 85-135mm telephoto → portrait compression, subject isolation
+• 100mm+ macro → extreme detail, texture, product
+
+DEPTH OF FIELD:
+• f/1.4 — razor-thin DOF, dreamy bokeh, only eyes in focus
+• f/2.8 — shallow, subject separation, portrait default
+• f/5.6 — moderate, environmental portrait
+• f/11+ — deep, everything in focus, landscape
+
+═══════════════════════════════════════════
+4. VARIANT GENERATION STRATEGY
+═══════════════════════════════════════════
+
+For each user request, produce 3 DISTINCT visual interpretations of the same subject. Each variant should feel like a different photographer shot the same brief:
+
+• Variant A — COMMERCIAL / CLEAN: studio lighting, polished, high-end, product/advertising quality
+• Variant B — CINEMATIC / MOODY: dramatic lighting, film aesthetic, atmospheric, storytelling
+• Variant C — NATURAL / AUTHENTIC: available light, unposed, real-life, UGC/documentary feel
+
+The three variants must differ in: lighting setup, color palette, style anchor, and camera approach.
+They must share: the same core subject, the same fundamental scene/context.
+
+═══════════════════════════════════════════
+5. CONSTRAINT TEMPLATES (always include, select by subject type)
+═══════════════════════════════════════════
+
+[CORE — always include]:
+• Facial features clear, natural, no distortion, no morphing
+• Hands and fingers anatomically correct, no extra fingers, no fused digits
+• No text overlay artifacts, no watermark
+
+[CHARACTER/PORTRAIT scenes — add]:
+• Skin texture natural, pores visible but not exaggerated
+• Eyes in sharp focus, catchlights visible
+• Hair strands natural, not plastic or melted
+
+[PRODUCT scenes — add]:
+• Product shape accurate, no warping, no morphing
+• Material textures crisp: glass reflects, metal gleams, fabric shows weave
+• No logos, no labels, no recognizable brand marks
+
+[ENVIRONMENT scenes — add]:
+• Architecture geometry stable, no floating objects
+• No physics breaking, no impossible shadows
+• No random extra elements appearing in background
+
+[CHINESE TEXT scenes — add]:
+• Chinese characters must be clearly legible, correct stroke order, no garbled text
+• No ghosted/double-printed characters
+• Font style consistent throughout
+
+═══════════════════════════════════════════
+6. COMMON PROBLEMS & QUICK FIXES
+═══════════════════════════════════════════
+
+Problem: Subject looks plastic/waxy → Fix: Add "visible skin pores, natural skin texture, subsurface scattering"
+Problem: Composition feels random → Fix: Name a specific framing rule + shot size
+Problem: Lighting feels flat → Fix: Name a specific lighting setup + light direction + color temperature
+Problem: Style not coming through → Fix: Use a stronger single anchor (photographer name beats adjective list)
+Problem: Hands/fingers deformed → Fix: Give hands a clear task (holding something specific)
+Problem: Chinese text garbled → Fix: Reduce text length, use larger font size, place on clean background
+
+═══════════════════════════════════════════
+7. EXECUTION PARAMETERS
+═══════════════════════════════════════════
+
+• Each prompt_en: 50-80 words, structured: Subject → Pose/Moment → Composition → Lighting → Style → Constraints
+• Generate exactly 3 variants with distinct visual approaches
+• Each variant must have: variant_name (Chinese label), description_cn, prompt_en, the specific style/photographer used${templateInfo}${styleInfo}
+
+═══════════════════════════════════════════
+OUTPUT FORMAT — Return ONLY valid JSON (no markdown fences, no extra text):
+═══════════════════════════════════════════
+
+{
+  "title": "descriptive Chinese title capturing the scene",
+  "subject": "one-line subject description in Chinese",
+  "style_anchor": "primary style/photographer/film stock used",
+  "variants": [
+    {
+      "variant_name": "方案A - 商业质感",
+      "tagline": "one-line Chinese: what makes this variant unique",
+      "description_cn": "Detailed Chinese description: the visual scene, composition, lighting, mood, why this approach works",
+      "prompt_en": "English prompt, 50-80 words. Structure: [Subject description] → [Decisive moment / frozen pose] → [Composition: shot size + framing rule + angle + focal] → [Lighting: setup name + direction + color temp + atmosphere] → [Style anchor: photographer/film stock/render engine] → [Constraints: 3-5 specific to this variant]",
+      "photographer_style": "the specific photographer/film stock/style anchor used for this variant",
+      "lighting_setup": "named lighting setup e.g. Rembrandt / window light / golden hour / studio",
+      "shot_size": "shot size in English",
+      "focal_length": "focal length e.g. 24mm, 50mm, 85mm, 100mm macro",
+      "depth_of_field": "aperture feel e.g. f/1.4 shallow, f/8 deep",
+      "constraints": ["variant-specific constraint 1", "constraint 2"]
+    }
+  ],
+  "global_constraints": [
+    "Facial features clear and natural, no distortion, no morphing",
+    "Hands anatomically correct, correct number of fingers",
+    "No text overlay artifacts, no watermark, no floating UI",
+    "All variants share the same core subject — only visual approach differs"
+  ],
+  "usage_tip": "One-line Chinese production tip: which variant suits what use case"
+}`;
+}
+
+// ===== 存储层 =====
+const Store = {
+  get(k, fallback) {
+    try { const v = localStorage.getItem('seedance_' + k); return v !== null ? v : fallback; }
+    catch { return fallback; }
+  },
+  set(k, v) { try { localStorage.setItem('seedance_' + k, v); } catch {} },
+  getTheme() { return this.get('theme', 'dark'); },
+  setTheme(t) { this.set('theme', t); },
+  getDeepseekKey() { return this.get('deepseek_key', ''); },
+  setDeepseekKey(k) { this.set('deepseek_key', k); },
+  getQwenKey() { return this.get('qwen_key', ''); },
+  setQwenKey(k) { this.set('qwen_key', k); }
+};
+
+// ===== UI 工具 =====
+const UI = {
+  status(text, isError) {
+    const el = document.getElementById('statusText');
+    const bar = document.getElementById('statusBar');
+    if (el) el.textContent = text;
+    if (bar) { bar.classList.toggle('error', !!isError); }
+  },
+  loading(msg) {
+    this.status(msg || '处理中...');
+    document.getElementById('spinner').classList.add('active');
+    document.getElementById('generateBtn').classList.add('loading');
+    document.getElementById('generateBtn').disabled = true;
+  },
+  idle(msg) {
+    this.status(msg || '就绪');
+    document.getElementById('spinner').classList.remove('active');
+    document.getElementById('generateBtn').classList.remove('loading');
+    document.getElementById('generateBtn').disabled = false;
+  },
+  toast(msg, type) {
+    const container = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = 'toast ' + (type || 'info');
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; }, 2500);
+    setTimeout(() => el.remove(), 2900);
+  }
+};
+
+// ===== API 层 =====
+const API = {
+  async callDeepSeek(systemPrompt, userContent) {
+    const key = Store.getDeepseekKey();
+    if (!key) throw new Error('请先在设置中填写 DeepSeek API Key');
+
+    const response = await fetch(CONFIG.DEEPSEEK_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
+      },
+      body: JSON.stringify({
+        model: CONFIG.DEEPSEEK_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent }
+        ],
+        temperature: 0.7,
+        max_tokens: 4096
+      })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => '');
+      if (response.status === 401) throw new Error('DeepSeek API Key 无效，请检查设置');
+      if (response.status === 429) throw new Error('DeepSeek API 请求过于频繁，请稍后重试');
+      throw new Error('DeepSeek API 错误 (' + response.status + '): ' + (errBody.slice(0, 200)));
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    return content;
+  },
+
+  async callQwenVL(imageBase64List) {
+    const key = Store.getQwenKey();
+    if (!key) throw new Error('请先在设置中填写 Qwen-VL API Key（DashScope）');
+
+    // Build content array: text prompt + images
+    const content = [
+      { type: 'text', text: '分析这些图片的整体视觉风格。请描述：1)色调和色温 2)光影方向和质感 3)构图特点 4)整体氛围和情绪。用简洁的中文回答，控制在100字以内。如果多张图片风格一致，综合描述；如果风格不同，分别简要说明。' }
+    ];
+    for (const b64 of imageBase64List) {
+      content.push({ type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + b64 } });
+    }
+
+    const response = await fetch(CONFIG.QWEN_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
+      },
+      body: JSON.stringify({
+        model: CONFIG.QWEN_MODEL,
+        messages: [{ role: 'user', content: content }],
+        max_tokens: 500
+      })
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('Qwen-VL API Key 无效，请检查设置');
+      if (response.status === 429) throw new Error('Qwen-VL API 请求过于频繁，请稍后重试');
+      throw new Error('Qwen-VL API 错误 (' + response.status + ')');
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  }
+};
+
+// ===== 生成引擎 =====
+const Engine = {
+  parseJSONResponse(text) {
+    let cleaned = text.trim();
+    // Strip code fences
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '');
+      cleaned = cleaned.replace(/\n?```\s*$/, '');
+    }
+    // Strip any 思考/thinking prefix before JSON (DeepSeek V4 Pro may output reasoning)
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+    if (jsonStart > 0 && jsonEnd > jsonStart) {
+      cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+    }
+    return JSON.parse(cleaned);
+  },
+
+  async generate(formData) {
+    const { script, duration, aspect, templateKey, images, mode } = formData;
+    const isImage = (mode === 'image');
+
+    // ---- shared: Qwen-VL style analysis ----
+    let styleAnalysis = '';
+    if (images && images.length > 0 && Store.getQwenKey()) {
+      UI.status('正在通过 Qwen-VL Plus 分析截图风格...');
+      const imageBase64List = await Promise.all(images.map(img => {
+        return new Promise((resolve) => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const maxW = 1024;
+          const scale = Math.min(1, maxW / img.naturalWidth);
+          canvas.width = img.naturalWidth * scale;
+          canvas.height = img.naturalHeight * scale;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+        });
+      }));
+      styleAnalysis = await API.callQwenVL(imageBase64List);
+    }
+
+    // ---- branch by mode ----
+    if (isImage) {
+      return await this._generateImage(script, templateKey, styleAnalysis);
+    } else {
+      return await this._generateVideo(script, duration, aspect, templateKey, styleAnalysis);
+    }
+  },
+
+  async _generateVideo(script, duration, aspect, templateKey, styleAnalysis) {
+    const template = TEMPLATES[templateKey];
+    const strategyNote = template ? '策略：' + template.strategy : '策略：根据文案内容自动判断最合适的风格和运镜方式';
+    const userLines = [
+      '## 📝 用户文案/剧本',
+      script || '（用户未输入具体文案，请根据模板策略自由创作一个展示性分镜）',
+      '',
+      '## ⚙️ 参数要求',
+      '- 总时长：' + duration + ' 秒',
+      '- 画幅比例：' + aspect,
+      '- ' + strategyNote
+    ];
+
+    if (template) {
+      userLines.push('- 风格锚定参考：' + template.defaults.style);
+      userLines.push('- 推荐运镜方式：' + template.defaults.camera);
+      userLines.push('- 推荐光影方向：' + template.defaults.lighting);
+      userLines.push('- 推荐景别：' + template.defaults.shotSize);
+    }
+
+    userLines.push('');
+    userLines.push('## 🎯 输出要求');
+    userLines.push('请根据以上信息，生成一个结构化的视频分镜表。每个镜头的 prompt_en 必须是 50-80 词的英文提示词，遵循 Subject → Action → Camera → Lighting → Style → Constraints 的结构。');
+
+    UI.status('正在通过 DeepSeek V4 Pro 生成分镜...');
+    const systemPrompt = buildSystemPrompt(
+      template ? template.defaults : null,
+      styleAnalysis,
+      { duration, aspect }
+    );
+    const userContent = userLines.join('\n');
+    const response = await API.callDeepSeek(systemPrompt, userContent);
+    return this.parseJSONResponse(response);
+  },
+
+  async _generateImage(script, templateKey, styleAnalysis) {
+    const template = IMAGE_TEMPLATES[templateKey];
+    const strategyNote = template ? '策略：' + template.strategy : '策略：根据文案内容自动判断最合适的视觉风格';
+    const variantHint = template ? '建议变体方向：' + (template.defaults.variants || ['方案A','方案B','方案C']).join(' / ') : '';
+
+    const userLines = [
+      '## 📝 用户想要生成的画面',
+      script || '（用户未输入具体描述，请根据模板策略自由创作一个展示性画面）',
+      '',
+      '## ⚙️ 图片参数',
+      '- ' + strategyNote,
+      '- ' + variantHint
+    ];
+
+    if (template) {
+      userLines.push('- 风格锚定参考：' + template.defaults.style);
+      userLines.push('- 推荐构图方式：' + template.defaults.composition);
+      userLines.push('- 推荐光影方向：' + template.defaults.lighting);
+      userLines.push('- 推荐景别：' + template.defaults.shotSize);
+      userLines.push('- 推荐角度：' + template.defaults.camera_angle);
+    }
+
+    userLines.push('');
+    userLines.push('## 🎯 输出要求');
+    userLines.push('请根据以上描述，生成 3 个不同风格的图片提示词变体（方案A商业质感 / 方案B电影情绪 / 方案C自然真实）。每个变体的 prompt_en 必须是 50-80 词的英文提示词，遵循 Subject → Pose/Moment → Composition → Lighting → Style → Constraints 的结构。');
+    userLines.push('三个变体必须共享同一个核心主体，但在光影方案、色调、风格锚定、构图方式上形成明显差异。');
+
+    UI.status('正在通过 DeepSeek V4 Pro 生成图片提示词...');
+    const systemPrompt = buildImageSystemPrompt(
+      template ? template.defaults : null,
+      styleAnalysis
+    );
+    const userContent = userLines.join('\n');
+    const response = await API.callDeepSeek(systemPrompt, userContent);
+    return this.parseJSONResponse(response);
+  }
+};
+
+// ===== 渲染层 =====
+const Renderer = {
+  render(result) {
+    const emptyState = document.getElementById('emptyState');
+    const outputContent = document.getElementById('outputContent');
+    emptyState.style.display = 'none';
+    outputContent.style.display = 'block';
+
+    let html = '';
+
+    // Title + meta
+    html += '<div class="output-title">🎞️ ' + this.esc(result.title || '未命名分镜') + '</div>';
+    html += '<div class="output-subtitle">';
+    html += '<span>⏱ ' + (result.total_duration_sec || '?') + 's</span>';
+    html += '<span>🎬 ' + (result.shots?.length || 0) + ' 个镜头</span>';
+    html += '<span>📐 ' + (result.aspect_ratio || '16:9') + '</span>';
+    html += '<span>🎨 ' + this.esc(result.style_anchor || '-') + '</span>';
+    html += '</div>';
+
+    // Narrative arc
+    if (result.narrative_arc) {
+      html += '<div class="narrative-arc">📖 叙事曲线：' + this.esc(result.narrative_arc) + '</div>';
+    }
+
+    // Shots
+    html += '<div class="shot-list">';
+    if (result.shots && result.shots.length > 0) {
+      result.shots.forEach(shot => {
+        html += '<div class="shot-card">';
+        html += '<div class="shot-header">';
+        html += '<span class="shot-number">🎬 镜头 ' + shot.id + (shot.shot_name ? ' · ' + this.esc(shot.shot_name) : '') + '</span>';
+        html += '<div class="shot-meta">';
+        html += '<span>📷 ' + this.esc(shot.camera_movement || '-') + '</span>';
+        html += '<span>🔍 ' + this.esc(shot.shot_size || '-') + '</span>';
+        if (shot.camera_angle) { html += '<span>📐 ' + this.esc(shot.camera_angle) + '</span>'; }
+        html += '<span>🔎 ' + this.esc(shot.focal_length || '-') + '</span>';
+        if (shot.time_mark) { html += '<span>🕐 ' + this.esc(shot.time_mark) + '</span>'; }
+        html += '<span>⏱ ' + (shot.duration_sec || '?') + 's</span>';
+        html += '</div></div>';
+        html += '<div class="shot-body">';
+        html += '<div class="shot-field"><div class="shot-field-label">🇨🇳 画面描述</div>';
+        html += '<div class="shot-field-value">' + this.esc(shot.description_cn || '') + '</div></div>';
+        html += '<div class="shot-field"><div class="shot-field-label">🎬 Seedance Prompt</div>';
+        html += '<div class="shot-field-value prompt-en">' + this.esc(shot.prompt_en || '') + '</div></div>';
+        if (shot.constraints && shot.constraints.length > 0) {
+          html += '<div class="shot-field"><div class="shot-field-label">⛔ 镜头约束</div>';
+          html += '<div class="shot-field-value">' + shot.constraints.map(c => '• ' + this.esc(c)).join('<br>') + '</div></div>';
+        }
+        html += '</div></div>';
+      });
+    }
+    html += '</div>';
+
+    // Production notes
+    if (result.production_notes) {
+      html += '<div class="production-notes">🎧 制作建议：' + this.esc(result.production_notes) + '</div>';
+    }
+
+    // Global constraints
+    if (result.global_constraints && result.global_constraints.length > 0) {
+      html += '<div class="global-constraints"><strong>⛔ 全局约束：</strong><br>';
+      html += result.global_constraints.map(c => '• ' + this.esc(c)).join('<br>');
+      html += '</div>';
+    }
+
+    // Actions
+    html += '<div class="output-actions">';
+    html += '<button class="btn btn-primary" id="copyAllBtn">📋 复制全部 Prompt</button>';
+    html += '<button class="btn" id="exportMdBtn">📥 导出 Markdown</button>';
+    html += '</div>';
+
+    outputContent.innerHTML = html;
+
+    // Bind action buttons
+    document.getElementById('copyAllBtn').addEventListener('click', () => this.copyAll(result));
+    document.getElementById('exportMdBtn').addEventListener('click', () => this.exportMarkdown(result));
+
+    // Scroll to output on mobile
+    if (window.innerWidth <= 768) {
+      outputContent.scrollIntoView({ behavior: 'smooth' });
+    }
+  },
+
+  copyAll(result) {
+    const prompts = (result.shots || []).map(s =>
+      '// Shot ' + s.id + (s.shot_name ? ' · ' + s.shot_name : '') + ' (' + (s.duration_sec || '?') + 's, ' + (s.camera_movement || '') + ')\n' +
+      (s.prompt_en || '')
+    ).join('\n\n');
+    navigator.clipboard.writeText(prompts).then(() => {
+      UI.toast('✅ 已复制 ' + (result.shots?.length || 0) + ' 个镜头的 Prompt 到剪贴板', 'success');
+    }).catch(() => {
+      UI.toast('复制失败，请手动选择文本', 'error');
+    });
+  },
+
+  exportMarkdown(result) {
+    let md = '# 🎞️ ' + (result.title || 'Seedance 分镜表') + '\n\n';
+    md += '**总时长**：' + (result.total_duration_sec || '?') + 's | ';
+    md += '**镜头数**：' + (result.shots?.length || 0) + ' | ';
+    md += '**画幅**：' + (result.aspect_ratio || '16:9') + ' | ';
+    md += '**风格**：' + (result.style_anchor || '-') + '\n';
+    if (result.narrative_arc) { md += '\n**叙事曲线**：' + result.narrative_arc + '\n'; }
+    md += '\n---\n\n';
+
+    (result.shots || []).forEach(shot => {
+      md += '## 镜头 ' + shot.id + (shot.shot_name ? ' · ' + shot.shot_name : '') + '（' + (shot.duration_sec || '?') + 's）\n';
+      md += '| 参数 | 值 |\n|------|------|\n';
+      md += '| 景别 | ' + (shot.shot_size || '-') + ' |\n';
+      md += '| 运镜 | ' + (shot.camera_movement || '-') + ' |\n';
+      if (shot.camera_angle) { md += '| 角度 | ' + shot.camera_angle + ' |\n'; }
+      md += '| 焦段 | ' + (shot.focal_length || '-') + ' |\n';
+      if (shot.time_mark) { md += '| 时间段 | ' + shot.time_mark + ' |\n'; }
+      md += '\n**画面描述**：' + (shot.description_cn || '') + '\n\n';
+      md += '**Prompt**：\n```\n' + (shot.prompt_en || '') + '\n```\n\n';
+      if (shot.constraints && shot.constraints.length > 0) {
+        md += '**约束**：\n' + shot.constraints.map(c => '- ' + c).join('\n') + '\n\n';
+      }
+      md += '---\n\n';
+    });
+
+    if (result.production_notes) {
+      md += '## 🎧 制作建议\n\n' + result.production_notes + '\n\n---\n\n';
+    }
+
+    if (result.global_constraints && result.global_constraints.length > 0) {
+      md += '## ⛔ 全局约束\n\n';
+      md += result.global_constraints.map(c => '- ' + c).join('\n') + '\n';
+    }
+
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (result.title || 'seedance_storyboard').replace(/[^a-zA-Z0-9一-鿿]/g, '_') + '.md';
+    a.click();
+    URL.revokeObjectURL(url);
+    UI.toast('✅ Markdown 文件已下载', 'success');
+  },
+
+  // ---- Image mode rendering ----
+  renderImage(result) {
+    const emptyState = document.getElementById('emptyState');
+    const outputContent = document.getElementById('outputContent');
+    emptyState.style.display = 'none';
+    outputContent.style.display = 'block';
+
+    let html = '';
+
+    // Title + meta
+    html += '<div class="output-title">📷 ' + this.esc(result.title || '图片提示词') + '</div>';
+    html += '<div class="output-subtitle">';
+    html += '<span>🎯 ' + this.esc(result.subject || result.title || '-') + '</span>';
+    html += '<span>🎨 ' + this.esc(result.style_anchor || '-') + '</span>';
+    html += '<span>🖼️ ' + (result.variants?.length || 0) + ' 个变体</span>';
+    html += '</div>';
+
+    // Usage tip
+    if (result.usage_tip) {
+      html += '<div class="usage-tip">💡 ' + this.esc(result.usage_tip) + '</div>';
+    }
+
+    // Variant cards
+    html += '<div class="variant-list">';
+    if (result.variants && result.variants.length > 0) {
+      result.variants.forEach((v, i) => {
+        const icons = ['🅰️', '🅱️', '©️'];
+        html += '<div class="variant-card">';
+        html += '<div class="variant-header">';
+        html += '<span class="variant-badge">' + (icons[i] || '🎨') + ' ' + this.esc(v.variant_name || '变体 ' + (i+1)) + '</span>';
+        if (v.tagline) { html += '<span class="variant-tagline">' + this.esc(v.tagline) + '</span>'; }
+        html += '</div>';
+        html += '<div class="variant-meta">';
+        html += '<span>📷 ' + this.esc(v.photographer_style || '-') + '</span>';
+        html += '<span>💡 ' + this.esc(v.lighting_setup || '-') + '</span>';
+        html += '<span>🔍 ' + this.esc(v.shot_size || '-') + '</span>';
+        html += '<span>🔎 ' + this.esc(v.focal_length || '-') + '</span>';
+        if (v.depth_of_field) { html += '<span>🔬 ' + this.esc(v.depth_of_field) + '</span>'; }
+        html += '</div>';
+        html += '<div class="variant-body">';
+        html += '<div class="shot-field"><div class="shot-field-label">🇨🇳 画面描述</div>';
+        html += '<div class="shot-field-value">' + this.esc(v.description_cn || '') + '</div></div>';
+        html += '<div class="shot-field"><div class="shot-field-label">🎬 Seedream Prompt</div>';
+        html += '<div class="shot-field-value prompt-en">' + this.esc(v.prompt_en || '') + '</div></div>';
+        if (v.constraints && v.constraints.length > 0) {
+          html += '<div class="shot-field"><div class="shot-field-label">⛔ 约束</div>';
+          html += '<div class="shot-field-value">' + v.constraints.map(c => '• ' + this.esc(c)).join('<br>') + '</div></div>';
+        }
+        html += '</div></div>';
+      });
+    }
+    html += '</div>';
+
+    // Global constraints
+    if (result.global_constraints && result.global_constraints.length > 0) {
+      html += '<div class="global-constraints"><strong>⛔ 全局约束：</strong><br>';
+      html += result.global_constraints.map(c => '• ' + this.esc(c)).join('<br>');
+      html += '</div>';
+    }
+
+    // Actions
+    html += '<div class="output-actions">';
+    html += '<button class="btn btn-primary" id="copyAllBtn">📋 复制全部 Prompt</button>';
+    html += '<button class="btn" id="exportMdBtn">📥 导出 Markdown</button>';
+    html += '</div>';
+
+    outputContent.innerHTML = html;
+
+    document.getElementById('copyAllBtn').addEventListener('click', () => this.copyAllImage(result));
+    document.getElementById('exportMdBtn').addEventListener('click', () => this.exportImageMD(result));
+
+    if (window.innerWidth <= 768) {
+      outputContent.scrollIntoView({ behavior: 'smooth' });
+    }
+  },
+
+  copyAllImage(result) {
+    const prompts = (result.variants || []).map(v =>
+      '// ' + (v.variant_name || 'Variant') + ' · ' + (v.photographer_style || '') + '\n' +
+      (v.prompt_en || '')
+    ).join('\n\n');
+    navigator.clipboard.writeText(prompts).then(() => {
+      UI.toast('✅ 已复制 ' + (result.variants?.length || 0) + ' 个变体的 Prompt 到剪贴板', 'success');
+    }).catch(() => {
+      UI.toast('复制失败，请手动选择文本', 'error');
+    });
+  },
+
+  exportImageMD(result) {
+    let md = '# 📷 ' + (result.title || 'Seedream 图片提示词') + '\n\n';
+    md += '**主体**：' + (result.subject || '-') + ' | ';
+    md += '**风格**：' + (result.style_anchor || '-') + ' | ';
+    md += '**变体数**：' + (result.variants?.length || 0) + '\n';
+    if (result.usage_tip) { md += '\n**使用建议**：' + result.usage_tip + '\n'; }
+    md += '\n---\n\n';
+
+    (result.variants || []).forEach((v, i) => {
+      md += '## ' + (v.variant_name || '变体 ' + (i+1)) + '\n';
+      if (v.tagline) { md += '**定位**：' + v.tagline + '\n\n'; }
+      md += '| 参数 | 值 |\n|------|------|\n';
+      md += '| 风格 | ' + (v.photographer_style || '-') + ' |\n';
+      md += '| 布光 | ' + (v.lighting_setup || '-') + ' |\n';
+      md += '| 景别 | ' + (v.shot_size || '-') + ' |\n';
+      md += '| 焦段 | ' + (v.focal_length || '-') + ' |\n';
+      if (v.depth_of_field) { md += '| 光圈 | ' + v.depth_of_field + ' |\n'; }
+      md += '\n**画面描述**：' + (v.description_cn || '') + '\n\n';
+      md += '**Prompt**：\n```\n' + (v.prompt_en || '') + '\n```\n\n';
+      if (v.constraints && v.constraints.length > 0) {
+        md += '**约束**：\n' + v.constraints.map(c => '- ' + c).join('\n') + '\n\n';
+      }
+      md += '---\n\n';
+    });
+
+    if (result.global_constraints && result.global_constraints.length > 0) {
+      md += '## ⛔ 全局约束\n\n';
+      md += result.global_constraints.map(c => '- ' + c).join('\n') + '\n';
+    }
+
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (result.title || 'seedream_prompts').replace(/[^a-zA-Z0-9一-鿿]/g, '_') + '.md';
+    a.click();
+    URL.revokeObjectURL(url);
+    UI.toast('✅ Markdown 文件已下载', 'success');
+  },
+
+  esc(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  clear() {
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('outputContent').style.display = 'none';
+    document.getElementById('outputContent').innerHTML = '';
+  }
+};
+
+// ===== 应用控制器 =====
+const App = {
+  currentMode: 'video',  // 'video' | 'image'
+  currentTemplate: null,
+  uploadedImages: [],
+
+  init() {
+    this.applyTheme(Store.getTheme());
+    this.renderTemplates();
+    this.loadSettings();
+    this.bindEvents();
+    this.updateParamVisibility();
+    UI.idle('就绪 — 请先配置 API Key（点击右上角 ⚙️ 设置）');
+  },
+
+  switchMode(mode) {
+    if (this.currentMode === mode) return;
+    this.currentMode = mode;
+    this.currentTemplate = null;
+
+    // Update tab buttons
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.mode === mode);
+    });
+
+    // Update header title
+    const title = document.getElementById('headerTitle');
+    if (title) title.textContent = mode === 'video' ? '🎬 Seedance 分镜工坊' : '📷 Seedream 图片工坊';
+
+    // Update generate button text
+    const genBtn = document.getElementById('generateBtn');
+    if (genBtn) genBtn.innerHTML = mode === 'video' ? '<span>🎬</span> 生成分镜' : '<span>📷</span> 生成图片提示词';
+
+    // Update panel title
+    const panelTitle = document.querySelector('.panel-input .panel-title');
+    if (panelTitle) panelTitle.textContent = mode === 'video' ? '📝 视频输入区' : '📝 图片输入区';
+
+    // Update textarea placeholder
+    const ta = document.getElementById('scriptInput');
+    if (ta) ta.placeholder = mode === 'video'
+      ? '描述你想生成的视频内容，或直接粘贴剧本...'
+      : '描述你想生成的画面，例如：一杯冒着热气的咖啡放在窗边，午后阳光从左侧照进来...';
+
+    // Show/hide video-specific params
+    this.updateParamVisibility();
+
+    // Re-render templates for current mode
+    this.renderTemplates();
+    Renderer.clear();
+  },
+
+  updateParamVisibility() {
+    const isImage = this.currentMode === 'image';
+    const paramRow = document.getElementById('paramRow');
+    if (paramRow) paramRow.style.display = isImage ? 'none' : '';
+  },
+
+  applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+  },
+
+  renderTemplates() {
+    const grid = document.getElementById('templateGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const templates = this.currentMode === 'image' ? IMAGE_TEMPLATES : TEMPLATES;
+    Object.entries(templates).forEach(([key, tpl]) => {
+      const card = document.createElement('div');
+      card.className = 'template-card';
+      card.dataset.key = key;
+      card.innerHTML = '<div class="tpl-icon">' + (tpl.icon || '🎨') + '</div>' +
+        '<div class="tpl-label">' + tpl.label + '</div>' +
+        '<div class="tpl-strategy">' + tpl.strategy + '</div>';
+      card.addEventListener('click', () => this.selectTemplate(key, card));
+      grid.appendChild(card);
+    });
+  },
+
+  selectTemplate(key, cardEl) {
+    document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
+    if (this.currentTemplate === key) {
+      this.currentTemplate = null;
+      return;
+    }
+    this.currentTemplate = key;
+    if (cardEl) cardEl.classList.add('active');
+  },
+
+  loadSettings() {
+    const dk = Store.getDeepseekKey();
+    const qk = Store.getQwenKey();
+    document.getElementById('deepseekKey').value = dk;
+    document.getElementById('qwenKey').value = qk;
+    if (!dk && !qk) {
+      UI.status('请先配置 API Key（点击右上角 ⚙️ 设置）');
+    }
+  },
+
+  saveSettings() {
+    Store.setDeepseekKey(document.getElementById('deepseekKey').value.trim());
+    Store.setQwenKey(document.getElementById('qwenKey').value.trim());
+    UI.toast('✅ 设置已保存', 'success');
+    UI.idle('就绪');
+    document.getElementById('settingsModal').classList.remove('open');
+  },
+
+  bindEvents() {
+    // Mode tabs
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', () => this.switchMode(tab.dataset.mode));
+    });
+
+    // Theme toggle
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const next = Store.getTheme() === 'dark' ? 'light' : 'dark';
+      Store.setTheme(next);
+      this.applyTheme(next);
+    });
+
+    // Settings modal
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      this.loadSettings();
+      document.getElementById('settingsModal').classList.add('open');
+    });
+    document.getElementById('closeSettings').addEventListener('click', () => {
+      document.getElementById('settingsModal').classList.remove('open');
+    });
+    document.getElementById('saveSettings').addEventListener('click', () => this.saveSettings());
+    document.getElementById('settingsModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) document.getElementById('settingsModal').classList.remove('open');
+    });
+
+    // Toggle key visibility
+    document.getElementById('toggleDeepseekKey').addEventListener('click', () => {
+      const inp = document.getElementById('deepseekKey');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    });
+    document.getElementById('toggleQwenKey').addEventListener('click', () => {
+      const inp = document.getElementById('qwenKey');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    });
+
+    // Upload
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      this.handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', () => {
+      this.handleFiles(fileInput.files);
+      fileInput.value = '';
+    });
+
+    // Generate
+    document.getElementById('generateBtn').addEventListener('click', () => this.generate());
+
+    // Keyboard shortcut: Ctrl+Enter to generate
+    document.getElementById('scriptInput').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        this.generate();
+      }
+    });
+  },
+
+  handleFiles(fileList) {
+    const maxFiles = CONFIG.MAX_IMAGES - this.uploadedImages.length;
+    const files = Array.from(fileList).slice(0, maxFiles);
+
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          this.uploadedImages.push(img);
+          this.renderPreviews();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (files.length < fileList.length) {
+      UI.toast('最多上传 ' + CONFIG.MAX_IMAGES + ' 张图片', 'info');
+    }
+  },
+
+  renderPreviews() {
+    const container = document.getElementById('uploadPreviews');
+    container.innerHTML = '';
+    this.uploadedImages.forEach((img, i) => {
+      const div = document.createElement('div');
+      div.className = 'upload-preview';
+      const thumb = document.createElement('img');
+      thumb.src = img.src;
+      const remove = document.createElement('button');
+      remove.className = 'remove-btn';
+      remove.textContent = '×';
+      remove.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.uploadedImages.splice(i, 1);
+        this.renderPreviews();
+      });
+      div.appendChild(thumb);
+      div.appendChild(remove);
+      container.appendChild(div);
+    });
+  },
+
+  async generate() {
+    const script = document.getElementById('scriptInput').value.trim();
+    if (!script) {
+      UI.toast(this.currentMode === 'image' ? '请输入画面描述' : '请输入文案或剧本描述', 'error');
+      return;
+    }
+
+    // Check if at least DeepSeek key is set
+    if (!Store.getDeepseekKey()) {
+      UI.toast('请先在设置中填写 DeepSeek API Key', 'error');
+      document.getElementById('settingsModal').classList.add('open');
+      return;
+    }
+
+    // Check if images uploaded but no Qwen key
+    if (this.uploadedImages.length > 0 && !Store.getQwenKey()) {
+      UI.toast('上传了截图但未配置 Qwen-VL Key，将跳过风格分析', 'info');
+    }
+
+    const duration = parseInt(document.getElementById('durationSelect').value);
+    const aspect = document.getElementById('aspectSelect').value;
+    const isImage = this.currentMode === 'image';
+
+    // Clear previous output
+    Renderer.clear();
+
+    UI.loading(isImage ? '正在生成图片提示词...' : '正在生成分镜...');
+    try {
+      const result = await Engine.generate({
+        script,
+        duration,
+        aspect,
+        templateKey: this.currentTemplate,
+        images: this.uploadedImages,
+        mode: this.currentMode
+      });
+      if (isImage) {
+        Renderer.renderImage(result);
+        UI.idle('✅ 图片提示词生成完成 — ' + (result.variants?.length || 0) + ' 个变体');
+        UI.toast('📷 生成成功！共 ' + (result.variants?.length || 0) + ' 个风格变体', 'success');
+      } else {
+        Renderer.render(result);
+        UI.idle('✅ 分镜生成完成 — ' + (result.shots?.length || 0) + ' 个镜头');
+        UI.toast('🎬 分镜生成成功！共 ' + (result.shots?.length || 0) + ' 个镜头', 'success');
+      }
+    } catch (err) {
+      console.error('生成失败:', err);
+      UI.idle('❌ ' + err.message);
+      UI.toast(err.message, 'error');
+      Renderer.clear();
+    }
+  }
+};
+
+// ===== 启动 =====
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
