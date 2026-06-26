@@ -2,12 +2,16 @@
 
 将文案/剧本一键转化为 Seedance 2.0 结构化视频分镜提示词。
 
+## 🌐 在线访问
+
+**🔗 https://lajitong0518.github.io/seedance-studio/**
+
 ## 🚀 使用方法
 
 ### 打开方式
 
-1. **双击** `index.html` 直接在浏览器中打开
-2. 或者部署到任意静态托管服务（GitHub Pages / Vercel / Netlify）
+1. **在线访问**：https://lajitong0518.github.io/seedance-studio/
+2. **本地打开**：双击 `index.html` 在浏览器中打开，或部署到任意静态托管服务（Vercel / Netlify）
 
 ### 配置 API Key
 
