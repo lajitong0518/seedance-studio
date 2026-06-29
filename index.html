@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="dark" data-version="20250629-v2">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>🎬 Seedance 分镜工坊</title>
 <style>
 /* ===== CSS Variables ===== */
@@ -450,7 +453,7 @@ select:focus { border-color: var(--accent); }
       </div>
       <input type="file" id="scriptFileInput" accept=".txt,.md,.docx"
         style="position:absolute;left:-9999px"
-        onchange="alert('onchange fired, files:'+this.files.length); if(this.files[0]) __LOAD_SCRIPT_FILE__(this.files[0]); this.value='';">
+        onchange="if(this.files[0]) __LOAD_SCRIPT_FILE__(this.files[0]); this.value='';">
       <textarea id="scriptInput" placeholder="描述你想生成的视频内容，例如：&#10;一个女孩站在雨夜的霓虹灯下，她缓缓抬起手接住落下的雨滴，眼神中带着释然的微笑。&#10;&#10;或者输入剧本段落，我们会自动拆解为分镜...&#10;&#10;💡 也可以拖拽 .txt / .md / .docx 剧本文件到此处，或点击上方「📂 上传剧本」按钮"
         ondragover="event.preventDefault(); this.parentElement.classList.add('dragover')"
         ondragleave="event.preventDefault(); this.parentElement.classList.remove('dragover')"
@@ -1876,24 +1879,19 @@ const App = {
   async handleScriptFile(file) {
     const validTypes = ['.txt', '.md', '.docx'];
     const ext = '.' + file.name.split('.').pop().toLowerCase();
-    alert('DEBUG2: ext=' + ext);
     if (!validTypes.includes(ext)) {
       UI.toast('仅支持 .txt / .md / .docx 格式的剧本文件', 'error');
       return;
     }
 
     UI.setStatus('正在读取剧本文件...');
-    alert('DEBUG3: 开始读取');
 
     try {
       let text = '';
 
       if (ext === '.docx') {
-        alert('DEBUG4: 进入 docx 分支');
         text = await this._parseDocx(file);
-        alert('DEBUG5: docx 解析完成, text长度=' + (text ? text.length : 0));
       } else {
-        alert('DEBUG4b: 进入纯文本分支');
         text = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result);
@@ -1905,7 +1903,6 @@ const App = {
       if (!text || !text.trim()) {
         UI.toast('文件内容为空，请检查文件', 'error');
         UI.setStatus('就绪');
-        alert('DEBUG6: 内容为空');
         return;
       }
 
@@ -1913,7 +1910,6 @@ const App = {
       const ta = document.getElementById('scriptInput');
       ta.value = text;
       ta.focus();
-      alert('DEBUG7: 已填入textarea');
 
       // Show badge
       const badge = document.getElementById('scriptFileBadge');
@@ -1932,7 +1928,6 @@ const App = {
       UI.setStatus('已加载剧本文件：' + file.name + '（' + (text.length > 1000 ? (text.length/1000).toFixed(1) + 'k' : text.length) + ' 字）');
       UI.toast('✅ 剧本已加载到编辑区，可编辑后生成', 'success');
     } catch (err) {
-      alert('DEBUG_ERR: ' + err.message);
       UI.toast('文件读取失败：' + err.message, 'error');
       UI.setStatus('就绪');
     }
@@ -1940,26 +1935,35 @@ const App = {
 
   async _parseDocx(file) {
     // Dynamically load mammoth.js from CDN for .docx parsing
+    // Use jsDelivr as primary (has China CDN nodes), unpkg as fallback
     if (!window._mammothLoaded) {
       UI.setStatus('正在加载文档解析器...');
-      alert('DEBUG_DOCX: 正在从CDN加载 mammoth.js...');
-      try {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js';
-          script.onload = () => { window._mammothLoaded = true; alert('DEBUG_DOCX: mammoth.js 加载成功'); resolve(); };
-          script.onerror = () => { alert('DEBUG_DOCX: mammoth.js 加载失败! CDN不可达'); reject(new Error('文档解析器加载失败，请检查网络连接')); };
-          document.head.appendChild(script);
-        });
-      } catch(e) {
-        alert('DEBUG_DOCX_ERR: ' + e.message);
-        throw e;
+      const cdnUrls = [
+        'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js',
+        'https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js'
+      ];
+      let loaded = false;
+      for (const url of cdnUrls) {
+        try {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = url;
+            script.onload = () => { window._mammothLoaded = true; loaded = true; resolve(); };
+            script.onerror = () => reject(new Error('CDN unreachable: ' + url));
+            document.head.appendChild(script);
+          });
+          break; // Success, stop trying more URLs
+        } catch (e) {
+          console.warn('mammoth.js CDN failed:', e.message);
+          // Continue to next fallback
+        }
+      }
+      if (!loaded) {
+        throw new Error('文档解析器加载失败，请检查网络连接，或将剧本保存为 .txt/.md 格式后重试');
       }
     }
-    alert('DEBUG_DOCX: 正在解析docx...');
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer });
-    alert('DEBUG_DOCX: 解析完成, 文本长度=' + result.value.length);
     return result.value;
   },
 
@@ -2044,14 +2048,16 @@ const App = {
 window.App = App;
 
 // Standalone global function for inline HTML event handlers.
-// Named in UPPER_SNAKE so it's obviously not shadowed by anything.
-window.__LOAD_SCRIPT_FILE__ = function(file) {
+// Must be async and await the call — handleScriptFile is async and its
+// Promise rejections must be caught, otherwise they become unhandled.
+window.__LOAD_SCRIPT_FILE__ = async function(file) {
+  if (!file) return;
   try {
-    if (!file) { alert('DEBUG: no file passed'); return; }
-    alert('DEBUG: 文件已接收 — ' + file.name + ' (' + file.size + ' bytes)');
-    App.handleScriptFile(file);
+    await App.handleScriptFile(file);
   } catch(e) {
-    alert('DEBUG: 调用失败 — ' + e.message);
+    console.error('剧本文件读取失败:', e);
+    UI.toast('剧本读取失败: ' + e.message, 'error');
+    UI.setStatus('就绪');
   }
 };
 
