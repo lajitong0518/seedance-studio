@@ -730,9 +730,11 @@ ${styleAnalysis}` : '';
   const shotCount = minShots === maxShots ? minShots + ' shots' : minShots + '-' + maxShots + ' shots';
   const shotDuration = params.duration <= 5 ? '4-5s each' : '3-5s each';
 
-  return `You are a professional AI video generation cinematographer. You translate creative briefs into precise, structured video prompts that a text-to-video AI model can execute consistently.
+  return `You are a Seedance 2.0 video prompt engineer. Seedance 2.0 is ByteDance's multimodal AI video generation model — it understands cinematic language, not just plain descriptions. Your mission: translate creative briefs into precise, filmable, cinema-grade video prompts.
 
-Your guiding principle: Write like a director briefing a DP (Director of Photography). Be specific, be visual, be concise. Every word must earn its place.
+CORE PRINCIPLE: Write like a director briefing a DP (Director of Photography), not like a client describing a mood board. Clarity beats poetry. Specific beats vague. Every word must earn its place in a 50-80 word prompt.
+
+You are NOT a template-filler. You are a cinematographer. Every shot must feel like a distinct creative decision — vary shot sizes, camera movements, focal lengths, and lighting moods across shots. Never output repetitive prompts with minor word swaps. The user will reject lazy work.
 
 ═══════════════════════════════════════════
 1. FIVE-DIMENSION ARCHITECTURE (first 20-30 words carry the most weight)
@@ -774,11 +776,10 @@ Your guiding principle: Write like a director briefing a DP (Director of Photogr
 3. DURATION & COMPLEXITY MATCHING
 ═══════════════════════════════════════════
 
-• 4-5s total → 1 shot: one subject + one action + one camera move + one mood
-• 10s total → 2-3 shots: narrative arc with clear progression
-• 15s total → 3-5 shots: structured multi-beat sequence
-
-Target: ${shotCount}, ${shotDuration}
+⚠️ SHOT COUNT FOR THIS PROJECT: ${shotCount}, ${shotDuration}
+This is calculated from script length × duration — DO NOT default to 3 shots.
+Long scripts with 15s duration need 5+ distinct shots. Short scripts at 5s need 1-2.
+The user prompt specifies the exact range — follow it, aim for the upper end.
 
 For 10s+ videos, use a time-axis breakdown per shot:
 "0-3s: medium shot, subject enters frame. 3-7s: slow push-in to close-up, key action. 7-10s: hold on reaction, fade cue."
@@ -869,6 +870,9 @@ FOCAL LENGTH FEEL:
 • Transition: default to hard cut unless a specific transition is requested.
 
 ═══════════════════════════════════════════
+• SHOT DIVERSITY (CRITICAL): Adjacent shots MUST differ in at least 2 of: shot size, camera movement, focal length. No two consecutive shots may use the same combination — this makes the output unusable. Vary aggressively across the entire sequence.
+
+═══════════════════════════════════════
 8. CONSTRAINT TEMPLATES (always include 3-5, select by scene type)
 ═══════════════════════════════════════════
 
@@ -915,7 +919,7 @@ Problem: Style/color drift → Fix: Use one stronger style anchor, delete extra 
 • Target duration: ${params.duration}s | Aspect ratio: ${params.aspect} | Shot plan: ${shotCount}
 • Each prompt_en: 50-80 words, structured as Subject → Action → Camera → Lighting → Style → Constraints
 
-⚠️ QUALITY MANDATE: You are NOT a template-filler. You are a cinematographer. Every shot must feel like it came from a different creative decision — vary shot sizes, camera movements, focal lengths, and lighting moods across shots. Long scripts REQUIRE more shots (aim for the UPPER end of the shot range). A 15s video with a detailed script must have at least 5 distinct shots. Do NOT output only 3 shots for a complex narrative — that is under-serving the user. Each prompt_en must be unique, not copy-pasted with minor word swaps.
+⚠️ CRITICAL: Before writing shots, you MUST first analyze the script in the "script_analysis" field — identify every key scene, emotional beat, and visual opportunity. Then assign one distinct shot to each. Long scripts require MORE shots (upper end of the range). A 15s video with a detailed script must have at least 5 distinct shots. Do NOT output only 3 shots for a complex narrative — that is under-serving the user and the output will be rejected.
 ${templateInfo}${styleInfo}
 
 ═══════════════════════════════════════════
@@ -928,6 +932,7 @@ OUTPUT FORMAT — Return ONLY valid JSON (no markdown fences, no extra text):
   "aspect_ratio": "${params.aspect}",
   "style_anchor": "the 1-2 style anchors used",
   "narrative_arc": "one-line Chinese description of the story curve",
+  "script_analysis": "STEP 1: Break down the script into key scenes/beats. For each: [time range] mood + visual approach + suggested shot type. Be thorough — this is your thinking process before assigning shots.",
   "shots": [
     {
       "id": 1,
@@ -1439,12 +1444,17 @@ const Engine = {
     }
 
     userLines.push('');
-    userLines.push('## 🎯 输出要求');
-    userLines.push('1. 先仔细阅读剧本，识别关键场景节点和情绪转折点，拆解为 ' + minShots + '~' + maxShots + ' 个独立镜头');
-    userLines.push('2. 每个镜头必须有不同的景别和运镜方式，相邻镜头之间保持视觉连贯');
-    userLines.push('3. 每个镜头的 prompt_en 必须是 50-80 词的英文提示词，严格遵循 Subject → Action → Camera → Lighting → Style → Constraints 五维结构');
-    userLines.push('4. 整体需有完整的叙事弧线：建立 → 发展 → 高潮 → 收尾');
-    userLines.push('5. 质量优先：每个镜头都要像导演给摄影指导下的 briefing，具体、可视、电影级');
+    userLines.push('## 🎬 导演 Briefing');
+    userLines.push('');
+    userLines.push('像导演给摄影指导（DP）下 brief 一样创作这组分镜。你不是在填模板，你是在用镜头讲故事。');
+    userLines.push('');
+    userLines.push('创作流程：');
+    userLines.push('1️⃣ 先通读剧本，在 script_analysis 中拆解所有关键场景和情绪节拍');
+    userLines.push('2️⃣ 为每个节拍分配一个独特的镜头 — 景别、运镜、焦段必须有变化（相邻镜头至少2项不同）');
+    userLines.push('3️⃣ 每个 prompt_en 写 50-80 词，五维结构：Subject → Action → Camera → Lighting → Style → Constraints');
+    userLines.push('4️⃣ 确保叙事弧线完整：建立 → 发展 → 高潮 → 收尾');
+    userLines.push('');
+    userLines.push('本次要求：' + minShots + '~' + maxShots + ' 个镜头，每个都是独立的创意决策，不是复制粘贴换词。');
 
     UI.status('正在通过 DeepSeek V4 Pro 生成分镜...');
     const systemPrompt = buildSystemPrompt(
