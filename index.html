@@ -1842,23 +1842,36 @@ const App = {
     });
 
     // Drag & drop script file onto the textarea area
-    scriptDropZone.addEventListener('dragover', (e) => {
+    let scriptDragCounter = 0;
+    const scriptDragReset = () => { scriptDragCounter = 0; scriptDropZone.classList.remove('dragover'); };
+
+    scriptDropZone.addEventListener('dragenter', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      scriptDragCounter++;
       scriptDropZone.classList.add('dragover');
     });
     scriptDropZone.addEventListener('dragleave', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      scriptDropZone.classList.remove('dragover');
+      scriptDragCounter--;
+      if (scriptDragCounter <= 0) {
+        scriptDragCounter = 0;
+        scriptDropZone.classList.remove('dragover');
+      }
     });
     scriptDropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      scriptDropZone.classList.remove('dragover');
+      scriptDragReset();
       const file = e.dataTransfer.files[0];
       if (file) this.handleScriptFile(file);
     });
+
+    // Prevent textarea from intercepting file drops
+    const scriptTA = document.getElementById('scriptInput');
+    scriptTA.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
+    scriptTA.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); });
 
     // Generate
     document.getElementById('generateBtn').addEventListener('click', () => this.generate());
