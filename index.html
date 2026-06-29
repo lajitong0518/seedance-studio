@@ -182,6 +182,20 @@ textarea::placeholder { color: var(--text-secondary); }
 }
 .script-file-badge .remove-badge { cursor: pointer; font-weight: 700; opacity: 0.7; }
 .script-file-badge .remove-badge:hover { opacity: 1; }
+.script-drop-zone {
+  position: relative; border-radius: var(--radius-sm); transition: all 0.25s ease;
+}
+.script-drop-zone.dragover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  outline: 2px dashed var(--accent); outline-offset: 3px;
+}
+.script-drop-zone.dragover::after {
+  content: '📂 松手即可上传剧本'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent); font-size: 1.1rem; font-weight: 700;
+  border-radius: var(--radius-sm); pointer-events: none; z-index: 10;
+}
 
 /* Selects */
 .param-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -428,7 +442,7 @@ select:focus { border-color: var(--accent); }
     </div>
 
     <!-- Script Input -->
-    <div class="form-group">
+    <div class="form-group script-drop-zone" id="scriptDropZone">
       <div class="script-label-row">
         <label class="form-label" for="scriptInput">📖 文案 / 剧本描述</label>
         <button class="script-upload-btn" id="scriptUploadBtn">📂 上传剧本</button>
@@ -1814,14 +1828,36 @@ const App = {
       fileInput.value = '';
     });
 
-    // Script file upload
+    // Script file upload (button click + drag & drop)
+    const scriptDropZone = document.getElementById('scriptDropZone');
+    const scriptFileInput = document.getElementById('scriptFileInput');
+
     document.getElementById('scriptUploadBtn').addEventListener('click', () => {
-      document.getElementById('scriptFileInput').click();
+      scriptFileInput.click();
     });
-    document.getElementById('scriptFileInput').addEventListener('change', () => {
-      const f = document.getElementById('scriptFileInput').files[0];
+    scriptFileInput.addEventListener('change', () => {
+      const f = scriptFileInput.files[0];
       if (f) this.handleScriptFile(f);
-      document.getElementById('scriptFileInput').value = '';
+      scriptFileInput.value = '';
+    });
+
+    // Drag & drop script file onto the textarea area
+    scriptDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scriptDropZone.classList.add('dragover');
+    });
+    scriptDropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scriptDropZone.classList.remove('dragover');
+    });
+    scriptDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scriptDropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) this.handleScriptFile(file);
     });
 
     // Generate
