@@ -449,11 +449,11 @@ select:focus { border-color: var(--accent); }
           onclick="document.getElementById('scriptFileInput').click()">📂 上传剧本</button>
       </div>
       <input type="file" id="scriptFileInput" accept=".txt,.md,.docx" hidden
-        onchange="if(this.files[0]) loadScriptFile(this.files[0]); this.value='';">
+        onchange="if(this.files[0]) __LOAD_SCRIPT_FILE__(this.files[0]); this.value='';">
       <textarea id="scriptInput" placeholder="描述你想生成的视频内容，例如：&#10;一个女孩站在雨夜的霓虹灯下，她缓缓抬起手接住落下的雨滴，眼神中带着释然的微笑。&#10;&#10;或者输入剧本段落，我们会自动拆解为分镜...&#10;&#10;💡 也可以拖拽 .txt / .md / .docx 剧本文件到此处，或点击上方「📂 上传剧本」按钮"
         ondragover="event.preventDefault(); this.parentElement.classList.add('dragover')"
         ondragleave="event.preventDefault(); this.parentElement.classList.remove('dragover')"
-        ondrop="event.preventDefault(); this.parentElement.classList.remove('dragover'); if(event.dataTransfer.files[0]) loadScriptFile(event.dataTransfer.files[0])"
+        ondrop="event.preventDefault(); this.parentElement.classList.remove('dragover'); if(event.dataTransfer.files[0]) __LOAD_SCRIPT_FILE__(event.dataTransfer.files[0])"
       ></textarea>
       <div class="script-file-badge" id="scriptFileBadge" style="display:none;"></div>
     </div>
@@ -2027,12 +2027,16 @@ const App = {
 // Expose to inline event handlers (const is not on window by default)
 window.App = App;
 
-// Standalone global functions for inline HTML event handlers
-// These MUST be on window so that inline onclick/ondrop/etc. can reach them
-window.loadScriptFile = function(file) {
-  if (!file) return;
-  UI.toast('正在读取: ' + file.name, 'info');
-  App.handleScriptFile(file);
+// Standalone global function for inline HTML event handlers.
+// Named in UPPER_SNAKE so it's obviously not shadowed by anything.
+window.__LOAD_SCRIPT_FILE__ = function(file) {
+  try {
+    if (!file) { alert('DEBUG: no file passed'); return; }
+    alert('DEBUG: 文件已接收 — ' + file.name + ' (' + file.size + ' bytes)');
+    App.handleScriptFile(file);
+  } catch(e) {
+    alert('DEBUG: 调用失败 — ' + e.message);
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
