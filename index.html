@@ -165,6 +165,24 @@ textarea {
 textarea:focus { border-color: var(--accent); }
 textarea::placeholder { color: var(--text-secondary); }
 
+/* Script Upload */
+.script-label-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.script-label-row .form-label { margin-bottom: 0; }
+.script-upload-btn {
+  padding: 4px 12px; border-radius: var(--radius-sm); border: 1px dashed var(--border);
+  background: transparent; color: var(--text-secondary); font-size: 0.75rem;
+  cursor: pointer; font-family: inherit; transition: all var(--transition);
+  white-space: nowrap;
+}
+.script-upload-btn:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.script-file-badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border-radius: var(--radius-sm); background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success); font-size: 0.75rem; margin-top: 6px;
+}
+.script-file-badge .remove-badge { cursor: pointer; font-weight: 700; opacity: 0.7; }
+.script-file-badge .remove-badge:hover { opacity: 1; }
+
 /* Selects */
 .param-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 select {
@@ -411,8 +429,13 @@ select:focus { border-color: var(--accent); }
 
     <!-- Script Input -->
     <div class="form-group">
-      <label class="form-label" for="scriptInput">📖 文案 / 剧本描述</label>
-      <textarea id="scriptInput" placeholder="描述你想生成的视频内容，例如：&#10;一个女孩站在雨夜的霓虹灯下，她缓缓抬起手接住落下的雨滴，眼神中带着释然的微笑。&#10;&#10;或者输入剧本段落，我们会自动拆解为分镜..."></textarea>
+      <div class="script-label-row">
+        <label class="form-label" for="scriptInput">📖 文案 / 剧本描述</label>
+        <button class="script-upload-btn" id="scriptUploadBtn">📂 上传剧本</button>
+      </div>
+      <input type="file" id="scriptFileInput" accept=".txt,.md,.docx" hidden>
+      <textarea id="scriptInput" placeholder="描述你想生成的视频内容，例如：&#10;一个女孩站在雨夜的霓虹灯下，她缓缓抬起手接住落下的雨滴，眼神中带着释然的微笑。&#10;&#10;或者输入剧本段落，我们会自动拆解为分镜...&#10;&#10;💡 也可以点击上方「📂 上传剧本」按钮，直接上传 .txt / .md / .docx 剧本文件"></textarea>
+      <div class="script-file-badge" id="scriptFileBadge" style="display:none;"></div>
     </div>
 
     <!-- Params -->
@@ -1774,7 +1797,7 @@ const App = {
       inp.type = inp.type === 'password' ? 'text' : 'password';
     });
 
-    // Upload
+    // Upload (images)
     const uploadZone = document.getElementById('uploadZone');
     const fileInput = document.getElementById('fileInput');
 
@@ -1789,6 +1812,16 @@ const App = {
     fileInput.addEventListener('change', () => {
       this.handleFiles(fileInput.files);
       fileInput.value = '';
+    });
+
+    // Script file upload
+    document.getElementById('scriptUploadBtn').addEventListener('click', () => {
+      document.getElementById('scriptFileInput').click();
+    });
+    document.getElementById('scriptFileInput').addEventListener('change', () => {
+      const f = document.getElementById('scriptFileInput').files[0];
+      if (f) this.handleScriptFile(f);
+      document.getElementById('scriptFileInput').value = '';
     });
 
     // Generate
@@ -1824,6 +1857,81 @@ const App = {
     if (files.length < fileList.length) {
       UI.toast('最多上传 ' + CONFIG.MAX_IMAGES + ' 张图片', 'info');
     }
+  },
+
+  async handleScriptFile(file) {
+    const validTypes = ['.txt', '.md', '.docx'];
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!validTypes.includes(ext)) {
+      UI.toast('仅支持 .txt / .md / .docx 格式的剧本文件', 'error');
+      return;
+    }
+
+    UI.setStatus('正在读取剧本文件...');
+
+    try {
+      let text = '';
+
+      if (ext === '.docx') {
+        text = await this._parseDocx(file);
+      } else {
+        text = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('文件读取失败'));
+          reader.readAsText(file, 'UTF-8');
+        });
+      }
+
+      if (!text || !text.trim()) {
+        UI.toast('文件内容为空，请检查文件', 'error');
+        UI.setStatus('就绪');
+        return;
+      }
+
+      // Fill textarea
+      const ta = document.getElementById('scriptInput');
+      ta.value = text;
+      ta.focus();
+
+      // Show badge
+      const badge = document.getElementById('scriptFileBadge');
+      const removeBtn = document.createElement('span');
+      removeBtn.className = 'remove-badge';
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', () => {
+        badge.style.display = 'none';
+        document.getElementById('scriptInput').value = '';
+      });
+      badge.textContent = '';
+      badge.appendChild(document.createTextNode('📄 ' + file.name + ' '));
+      badge.appendChild(removeBtn);
+      badge.style.display = 'inline-flex';
+
+      UI.setStatus('已加载剧本文件：' + file.name + '（' + (text.length > 1000 ? (text.length/1000).toFixed(1) + 'k' : text.length) + ' 字）');
+      UI.toast('✅ 剧本已加载到编辑区，可编辑后生成', 'success');
+    } catch (err) {
+      UI.toast('文件读取失败：' + err.message, 'error');
+      UI.setStatus('就绪');
+    }
+  },
+
+  async _parseDocx(file) {
+    // Dynamically load mammoth.js from CDN for .docx parsing
+    if (!window._mammothLoaded) {
+      UI.setStatus('正在加载文档解析器...');
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js';
+        script.onload = () => { window._mammothLoaded = true; resolve(); };
+        script.onerror = () => reject(new Error('文档解析器加载失败，请检查网络连接'));
+        document.head.appendChild(script);
+      });
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return result.value;
   },
 
   renderPreviews() {
