@@ -1884,7 +1884,7 @@ const App = {
       return;
     }
 
-    UI.setStatus('正在读取剧本文件...');
+    UI.status('正在读取剧本文件...');
 
     try {
       let text = '';
@@ -1902,7 +1902,7 @@ const App = {
 
       if (!text || !text.trim()) {
         UI.toast('文件内容为空，请检查文件', 'error');
-        UI.setStatus('就绪');
+        UI.status('就绪');
         return;
       }
 
@@ -1925,11 +1925,11 @@ const App = {
       badge.appendChild(removeBtn);
       badge.style.display = 'inline-flex';
 
-      UI.setStatus('已加载剧本文件：' + file.name + '（' + (text.length > 1000 ? (text.length/1000).toFixed(1) + 'k' : text.length) + ' 字）');
+      UI.status('已加载剧本文件：' + file.name + '（' + (text.length > 1000 ? (text.length/1000).toFixed(1) + 'k' : text.length) + ' 字）');
       UI.toast('✅ 剧本已加载到编辑区，可编辑后生成', 'success');
     } catch (err) {
       UI.toast('文件读取失败：' + err.message, 'error');
-      UI.setStatus('就绪');
+      UI.status('就绪');
     }
   },
 
@@ -1937,7 +1937,7 @@ const App = {
     // Dynamically load mammoth.js from CDN for .docx parsing
     // Use jsDelivr as primary (has China CDN nodes), unpkg as fallback
     if (!window._mammothLoaded) {
-      UI.setStatus('正在加载文档解析器...');
+      UI.status('正在加载文档解析器...');
       const cdnUrls = [
         'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js',
         'https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js'
@@ -2057,7 +2057,7 @@ window.__LOAD_SCRIPT_FILE__ = async function(file) {
   } catch(e) {
     console.error('剧本文件读取失败:', e);
     UI.toast('剧本读取失败: ' + e.message, 'error');
-    UI.setStatus('就绪');
+    UI.status('就绪');
   }
 };
 
