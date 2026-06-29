@@ -1222,7 +1222,7 @@ const API = {
           { role: 'user', content: userContent }
         ],
         temperature: 0.7,
-        max_tokens: 4096
+        max_tokens: 8192
       })
     });
 
@@ -1289,7 +1289,65 @@ const Engine = {
     if (jsonStart > 0 && jsonEnd > jsonStart) {
       cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
     }
-    return JSON.parse(cleaned);
+
+    // Attempt 1: direct parse
+    try {
+      return JSON.parse(cleaned);
+    } catch (e1) {
+      console.warn('Direct JSON parse failed, attempting repair...', e1.message);
+    }
+
+    // Attempt 2: repair truncated / malformed JSON
+    try {
+      let repaired = cleaned;
+      // Fix unclosed strings: find the last unclosed quote and close it
+      // Count quotes in the trailing portion to detect truncation mid-string
+      let inString = false, escaped = false;
+      for (let i = 0; i < repaired.length; i++) {
+        const ch = repaired[i];
+        if (escaped) { escaped = false; continue; }
+        if (ch === '\\') { escaped = true; continue; }
+        if (ch === '"') { inString = !inString; }
+      }
+      // If we're still inside a string, close it
+      if (inString) {
+        repaired += '"';
+      }
+
+      // Count braces/brackets and close any unclosed ones
+      const stack = [];
+      let inStr = false, esc = false;
+      for (let i = 0; i < repaired.length; i++) {
+        const ch = repaired[i];
+        if (esc) { esc = false; continue; }
+        if (ch === '\\') { esc = true; continue; }
+        if (ch === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (ch === '{' || ch === '[') { stack.push(ch === '{' ? '}' : ']'); }
+        else if (ch === '}' || ch === ']') {
+          if (stack.length > 0 && stack[stack.length - 1] === ch) { stack.pop(); }
+        }
+      }
+      // Close remaining openers in reverse order
+      while (stack.length > 0) {
+        repaired += stack.pop();
+      }
+
+      // Fix trailing commas before } or ]
+      repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
+      return JSON.parse(repaired);
+    } catch (e2) {
+      console.warn('JSON repair also failed:', e2.message);
+      // If all else fails, raise a clear error
+      const snippet = cleaned.slice(Math.max(0, (e1.position || 0) - 60), (e1.position || 0) + 80);
+      throw new Error(
+        'DeepSeek 返回的 JSON 格式异常，可能是剧本过长导致输出截断。' +
+        '请尝试：1) 缩短剧本内容 2) 分成多段分别生成 3) 重新点击生成。' +
+        ' 错误详情: ' + e1.message +
+        ' 出错附近: …' + snippet + '…'
+      );
+    }
   },
 
   async generate(formData) {
