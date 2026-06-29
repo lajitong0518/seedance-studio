@@ -448,7 +448,11 @@ select:focus { border-color: var(--accent); }
         <button class="script-upload-btn" id="scriptUploadBtn">📂 上传剧本</button>
       </div>
       <input type="file" id="scriptFileInput" accept=".txt,.md,.docx" hidden onchange="App.handleScriptFile(this.files[0]); this.value='';">
-      <textarea id="scriptInput" placeholder="描述你想生成的视频内容，例如：&#10;一个女孩站在雨夜的霓虹灯下，她缓缓抬起手接住落下的雨滴，眼神中带着释然的微笑。&#10;&#10;或者输入剧本段落，我们会自动拆解为分镜...&#10;&#10;💡 也可以点击上方「📂 上传剧本」按钮，直接上传 .txt / .md / .docx 剧本文件"></textarea>
+      <textarea id="scriptInput" placeholder="描述你想生成的视频内容，例如：&#10;一个女孩站在雨夜的霓虹灯下，她缓缓抬起手接住落下的雨滴，眼神中带着释然的微笑。&#10;&#10;或者输入剧本段落，我们会自动拆解为分镜...&#10;&#10;💡 也可以拖拽 .txt / .md / .docx 剧本文件到此处，或点击上方「📂 上传剧本」按钮"
+        ondragover="event.preventDefault(); this.parentElement.classList.add('dragover')"
+        ondragleave="this.parentElement.classList.remove('dragover')"
+        ondrop="event.preventDefault(); this.parentElement.classList.remove('dragover'); const f=event.dataTransfer.files[0]; if(f) App.handleScriptFile(f)"
+      ></textarea>
       <div class="script-file-badge" id="scriptFileBadge" style="display:none;"></div>
     </div>
 
