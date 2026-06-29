@@ -1845,19 +1845,23 @@ const App = {
     let scriptDragCounter = 0;
     const scriptDragReset = () => { scriptDragCounter = 0; scriptDropZone.classList.remove('dragover'); };
 
+    // dragover + preventDefault is REQUIRED to tell browser this zone accepts drops
+    scriptDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scriptDropZone.classList.add('dragover');
+    });
     scriptDropZone.addEventListener('dragenter', (e) => {
       e.preventDefault();
       e.stopPropagation();
       scriptDragCounter++;
-      scriptDropZone.classList.add('dragover');
     });
     scriptDropZone.addEventListener('dragleave', (e) => {
       e.preventDefault();
       e.stopPropagation();
       scriptDragCounter--;
       if (scriptDragCounter <= 0) {
-        scriptDragCounter = 0;
-        scriptDropZone.classList.remove('dragover');
+        scriptDragReset();
       }
     });
     scriptDropZone.addEventListener('drop', (e) => {
