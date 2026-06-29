@@ -1456,7 +1456,33 @@ const Engine = {
     userLines.push('');
     userLines.push('本次要求：' + minShots + '~' + maxShots + ' 个镜头，每个都是独立的创意决策，不是复制粘贴换词。');
 
-    UI.status('正在通过 DeepSeek V4 Pro 生成分镜...');
+    // ═══════════════════════════════════════
+    // 两轮生成：Pass 1 纯分析 → Pass 2 基于分析写分镜
+    // ═══════════════════════════════════════
+    let scriptAnalysis = null;
+    try {
+      UI.status('第1步：分析剧本结构（拆解场景/情绪/叙事功能）...');
+      scriptAnalysis = await this._analyzeScript(script, duration, minShots, maxShots);
+      if (scriptAnalysis && scriptAnalysis.segments && scriptAnalysis.segments.length > 0) {
+        userLines.push('');
+        userLines.push('## \U0001f4ca 剧本结构分析（基于此拆解生成分镜，每个段落=一个镜头）');
+        userLines.push('');
+        userLines.push('以下是 AI 对剧本的逐段拆解。你必须严格基于这个拆解来生成分镜：');
+        userLines.push('- 拆解出了几个段落，就生成几个镜头（每个段落 = 一个镜头）');
+        userLines.push('- 不得合并段落，不得跳过段落');
+        userLines.push('- 每个段落的 content / emotion / visual_focus 必须体现在对应镜头的 prompt_en 中');
+        userLines.push('');
+        userLines.push(JSON.stringify(scriptAnalysis, null, 2));
+        userLines.push('');
+        userLines.push('\u26a0\ufe0f 拆解出了 ' + scriptAnalysis.segments.length + ' 个段落，必须生成 ' + scriptAnalysis.segments.length + ' 个镜头。如果数量不符，输出不合格。');
+      }
+    } catch (e) {
+      console.warn('剧本分析失败，回退到单轮模式:', e.message);
+      UI.toast('剧本分析失败，使用单轮模式生成', 'info');
+    }
+
+    // 第二轮：基于分析（或直接基于剧本）生成分镜
+    UI.status('第2步：基于分析生成分镜...');
     const systemPrompt = buildSystemPrompt(
       template ? template.defaults : null,
       styleAnalysis,
@@ -1465,6 +1491,68 @@ const Engine = {
     const userContent = userLines.join('\n');
     const response = await API.callDeepSeek(systemPrompt, userContent);
     return this.parseJSONResponse(response);
+  },
+
+  // ---- Pass 1: 纯剧本分析（不写分镜，不做创造性工作） ----
+  async _analyzeScript(script, duration, minShots, maxShots) {
+    const segDuration = Math.round(duration / Math.max(minShots, 1));
+    const analysisSystemPrompt = `You are a script analyst for film production. Your ONLY job: break scripts into logical segments. You do NOT write video prompts. You do NOT choose camera angles. You ANALYZE.
+
+For each segment identify:
+- content: what happens (1-2 sentences, specific and concrete)
+- emotion: the emotional tone / mood
+- narrative_function: one of [establishing, development, climax, resolution]
+- visual_focus: what is visually important or striking
+
+Rules:
+- Target: ${minShots}-${maxShots} segments for ${duration}s video (~${segDuration}s each)
+- Cover the ENTIRE script — do NOT skip content
+- A script over 500 characters needs at least 4 segments; over 2000 needs at least 6
+- Segments should have clearly different narrative functions — not all "development"
+
+Output ONLY valid JSON (no markdown fences, no extra text):
+{
+  "total_segments": N,
+  "segments": [
+    {
+      "index": 1,
+      "time_range": "0-Xs",
+      "narrative_function": "establishing",
+      "content": "What happens — 1-2 sentences, specific and concrete",
+      "emotion": "Emotional tone, be precise",
+      "visual_focus": "What the camera should emphasize visually"
+    }
+  ],
+  "narrative_arc": "One Chinese sentence describing the overall story curve"
+}`;
+
+    const scriptText = (script || '').trim();
+    const scriptLen = scriptText.length;
+    const analysisUserPrompt = `Analyze this video script. Break it into logical segments. Be thorough.
+
+SCRIPT:
+${scriptText || '(No specific script provided — create a generic ' + minShots + '-segment breakdown for a ' + duration + 's video with a classic narrative arc)'}
+
+Requirements:
+- Script length: ${scriptLen} characters → target ${minShots}-${maxShots} segments
+- Video duration: ${duration}s
+- Each segment = ${segDuration}s average
+- Be THOROUGH. Identify EVERY distinct scene, mood shift, or narrative beat.
+- A script this length demands at least ${minShots} segments.`;
+
+    const response = await API.callDeepSeek(analysisSystemPrompt, analysisUserPrompt);
+    const result = this.parseJSONResponse(response);
+
+    // Validate segment count
+    if (result && result.segments) {
+      if (result.segments.length < minShots) {
+        console.warn('Analysis: got', result.segments.length, 'segments, wanted', minShots, '— using anyway');
+      }
+      // Ensure total_segments matches actual count
+      result.total_segments = result.segments.length;
+    }
+
+    return result;
   },
 
   async _generateImage(script, templateKey, styleAnalysis) {
