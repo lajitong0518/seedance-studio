@@ -713,6 +713,22 @@ const IMAGE_TEMPLATES = {
   }
 };
 
+// ===== 镜头多样性轮转模板（确保每个镜头使用不同的运镜/景别/焦段） =====
+const DIVERSITY_TEMPLATES = [
+  { camera: 'slow pan right', shot: 'wide', focal: '24mm', angle: 'eye level', narrative: 'establishing' },
+  { camera: 'slow dolly-in', shot: 'medium', focal: '35mm', angle: 'eye level', narrative: 'development' },
+  { camera: 'tracking shot', shot: 'medium-wide', focal: '28mm', angle: 'low angle', narrative: 'development' },
+  { camera: 'slow push-in', shot: 'close-up', focal: '85mm', angle: 'eye level', narrative: 'climax' },
+  { camera: 'orbit shot', shot: 'medium', focal: '35mm', angle: '45-degree overhead', narrative: 'development' },
+  { camera: 'slow dolly-out', shot: 'medium-wide', focal: '28mm', angle: 'high angle', narrative: 'resolution' },
+  { camera: 'tilt up slowly', shot: 'wide', focal: '24mm', angle: 'low angle', narrative: 'establishing' },
+  { camera: 'static tripod', shot: 'medium close-up', focal: '50mm', angle: 'eye level', narrative: 'development' },
+  { camera: 'slow push-in', shot: 'extreme close-up', focal: 'macro', angle: 'eye level', narrative: 'climax' },
+  { camera: 'steadicam gimbal-smooth', shot: 'medium', focal: '35mm', angle: 'eye level', narrative: 'development' },
+  { camera: 'slow overhead orbit', shot: 'wide', focal: '24mm', angle: 'overhead', narrative: 'establishing' },
+  { camera: 'rack focus', shot: 'close-up', focal: '85mm', angle: 'eye level', narrative: 'climax' },
+];
+
 // ===== Skill 规则库（System Prompt 用） =====
 function buildSystemPrompt(templateDefaults, styleAnalysis, params) {
   const templateInfo = templateDefaults ? `
@@ -1457,32 +1473,91 @@ const Engine = {
     userLines.push('本次要求：' + minShots + '~' + maxShots + ' 个镜头，每个都是独立的创意决策，不是复制粘贴换词。');
 
     // ═══════════════════════════════════════
-    // 两轮生成：Pass 1 纯分析 → Pass 2 基于分析写分镜
+        // ═══════════════════════════════════════
+    // 两轮生成：Pass 1 纯分析 → Pass 2 逐段并行生成分镜
     // ═══════════════════════════════════════
     let scriptAnalysis = null;
     try {
-      UI.status('第1步：分析剧本结构（拆解场景/情绪/叙事功能）...');
-      scriptAnalysis = await this._analyzeScript(script, duration, minShots, maxShots);
-      if (scriptAnalysis && scriptAnalysis.segments && scriptAnalysis.segments.length > 0) {
-        userLines.push('');
-        userLines.push('## \U0001f4ca 剧本结构分析（基于此拆解生成分镜，每个段落=一个镜头）');
-        userLines.push('');
-        userLines.push('以下是 AI 对剧本的逐段拆解。你必须严格基于这个拆解来生成分镜：');
-        userLines.push('- 拆解出了几个段落，就生成几个镜头（每个段落 = 一个镜头）');
-        userLines.push('- 不得合并段落，不得跳过段落');
-        userLines.push('- 每个段落的 content / emotion / visual_focus 必须体现在对应镜头的 prompt_en 中');
-        userLines.push('');
-        userLines.push(JSON.stringify(scriptAnalysis, null, 2));
-        userLines.push('');
-        userLines.push('\u26a0\ufe0f 拆解出了 ' + scriptAnalysis.segments.length + ' 个段落，必须生成 ' + scriptAnalysis.segments.length + ' 个镜头。如果数量不符，输出不合格。');
+      // Pass 1: Analysis with retry loop for insufficient segments
+      let analysisRetries = 0;
+      while (analysisRetries < 3) {
+        UI.status('第1步：分析剧本结构（拆解场景/情绪/叙事功能）' + (analysisRetries > 0 ? ' [重试' + analysisRetries + ']' : '') + '...');
+        scriptAnalysis = await this._analyzeScript(script, duration, minShots, maxShots);
+        if (scriptAnalysis && scriptAnalysis.segments && scriptAnalysis.segments.length >= minShots) {
+          break;
+        }
+        analysisRetries++;
+        if (scriptAnalysis && scriptAnalysis.segments) {
+          console.warn('Analysis only produced ' + scriptAnalysis.segments.length + ' segments, need ' + minShots + ', retrying...');
+        }
+        if (analysisRetries >= 3) {
+          console.warn('Analysis still insufficient after 3 retries, using for fallback');
+        }
       }
     } catch (e) {
       console.warn('剧本分析失败，回退到单轮模式:', e.message);
-      UI.toast('剧本分析失败，使用单轮模式生成', 'info');
+      scriptAnalysis = null;
     }
 
-    // 第二轮：基于分析（或直接基于剧本）生成分镜
-    UI.status('第2步：基于分析生成分镜...');
+    // Pass 2: If analysis succeeded, generate one shot PER SEGMENT in parallel
+    if (scriptAnalysis && scriptAnalysis.segments && scriptAnalysis.segments.length > 0) {
+      const segments = scriptAnalysis.segments;
+      UI.status('第2步：并行生成 ' + segments.length + ' 个镜头（每段独立创作）...');
+
+      try {
+        const shotPromises = segments.map((seg, i) => {
+          const divTemplate = DIVERSITY_TEMPLATES[i % DIVERSITY_TEMPLATES.length];
+          return this._generateOneShot(seg, i, segments.length, {
+            script, duration, aspect, template, styleAnalysis,
+            divTemplate, narrativeArc: scriptAnalysis.narrative_arc
+          });
+        });
+
+        const shotResults = await Promise.allSettled(shotPromises);
+        const shots = [];
+        let failedCount = 0;
+        for (let j = 0; j < shotResults.length; j++) {
+          if (shotResults[j].status === 'fulfilled' && shotResults[j].value) {
+            shots.push(shotResults[j].value);
+          } else {
+            failedCount++;
+            console.warn('Shot ' + (j+1) + ' generation failed:', shotResults[j].reason);
+            shots.push(this._fallbackShot(segments[j], j, segments.length, duration));
+          }
+        }
+
+        if (failedCount > 0) {
+          UI.toast(failedCount + '/' + segments.length + ' 个镜头生成失败，已使用备用方案', 'warning');
+        }
+
+        const result = {
+          title: ((script || 'Video').substring(0, 50) || 'Video') + ' - Seedance Storyboard',
+          total_duration_sec: duration,
+          aspect_ratio: aspect,
+          style_anchor: template ? template.defaults.style : 'cinematic',
+          narrative_arc: scriptAnalysis.narrative_arc || '',
+          script_analysis: 'Per-segment: ' + segments.length + ' segments each generated as independent shot.',
+          shots: shots,
+          global_constraints: [
+            'Character face stable, no facial deformation, normal human proportions across all shots',
+            'Natural smooth motion, no blur, no flicker, no ghosting in every shot',
+            'No text overlay, no watermark, no floating UI',
+            'Consistent lighting direction and color palette across all shots'
+          ]
+        };
+
+        UI.status('已生成 ' + shots.length + ' 个镜头（逐段独立创作）');
+        return result;
+
+      } catch (e) {
+        console.warn('Per-segment generation failed, falling back to single-call:', e.message);
+        UI.toast('并行生成失败，回退到单轮模式', 'warning');
+        // Fall through to single-call mode below
+      }
+    }
+
+    // Fallback: single-call generation (when analysis fails or per-segment fails)
+    UI.status('使用单轮模式生成分镜...');
     const systemPrompt = buildSystemPrompt(
       template ? template.defaults : null,
       styleAnalysis,
@@ -1490,8 +1565,7 @@ const Engine = {
     );
     const userContent = userLines.join('\n');
     const response = await API.callDeepSeek(systemPrompt, userContent);
-    return this.parseJSONResponse(response);
-  },
+    return this.parseJSONResponse(response);  },
 
   // ---- Pass 1: 纯剧本分析（不写分镜，不做创造性工作） ----
   async _analyzeScript(script, duration, minShots, maxShots) {
@@ -1553,6 +1627,99 @@ Requirements:
     }
 
     return result;
+  },
+
+  // ---- Pass 2 helper: Generate ONE shot for ONE segment (runs in parallel) ----
+  async _generateOneShot(segment, index, totalSegments, context) {
+    const { script, duration, aspect, template, styleAnalysis, divTemplate, narrativeArc } = context;
+    const segDuration = Math.round(duration / totalSegments);
+    const timeStart = index * segDuration;
+    const timeEnd = Math.min((index + 1) * segDuration, duration);
+
+    const shotSystemPrompt = `You are a Seedance 2.0 video prompt engineer. Write ONE video prompt for ONE specific shot.
+
+CRITICAL: You are ONLY writing shot #${index + 1} of ${totalSegments}. Do NOT write other shots. Output exactly ONE shot object.
+
+FIVE-DIMENSION STRUCTURE for this shot:
+1. SUBJECT — Who/what is in frame
+2. ACTION — Visible, slow verb phrases in present tense
+3. CAMERA — Use this: ${divTemplate.camera}, shot size: ${divTemplate.shot}, focal: ${divTemplate.focal}, angle: ${divTemplate.angle}
+4. LIGHTING — Light source direction, color temperature, atmosphere
+5. STYLE — One style anchor + constraints
+
+RULES:
+- Camera movement MUST be "${divTemplate.camera}" (pre-assigned for diversity across shots)
+- Shot size MUST be "${divTemplate.shot}"
+- Focal length MUST be "${divTemplate.focal}"
+- Prompt MUST be 50-80 words, English
+- Actions MUST be slow and visible: use "slowly", "gently", "gradually"
+- Include 3-5 constraints
+
+Output ONLY valid JSON (no markdown fences):
+{
+  "id": ${index + 1},
+  "shot_name": "Chinese label for this narrative beat",
+  "description_cn": "Detailed Chinese description of what happens in this shot",
+  "prompt_en": "English 50-80 word prompt: Subject -> Action -> Camera -> Lighting -> Style -> Constraints",
+  "camera_movement": "${divTemplate.camera}",
+  "shot_size": "${divTemplate.shot}",
+  "camera_angle": "${divTemplate.angle}",
+  "focal_length": "${divTemplate.focal}",
+  "duration_sec": ${segDuration},
+  "time_mark": "${timeStart}-${timeEnd}s",
+  "constraints": ["constraint1", "constraint2", "constraint3"]
+}`;
+
+    const shotUserPrompt = `CONTEXT:
+You are writing shot #${index + 1} of ${totalSegments} for a ${duration}s video.
+Full script: "${(script || '').substring(0, 500)}"
+Narrative arc: ${narrativeArc || 'Standard narrative progression'}
+Style anchor: ${template ? template.defaults.style : 'cinematic'}
+
+THIS SEGMENT:
+- Time: ${timeStart}-${timeEnd}s (~${segDuration}s)
+- Narrative function: ${segment.narrative_function}
+- Content: ${segment.content}
+- Emotion: ${segment.emotion}
+- Visual focus: ${segment.visual_focus}
+- Pre-assigned camera: ${divTemplate.camera} / ${divTemplate.shot} / ${divTemplate.focal} / ${divTemplate.angle}
+
+IMPORTANT:
+- This is segment ${index + 1} of ${totalSegments}. Write ONLY this one shot.
+- The pre-assigned camera (${divTemplate.camera}) is MANDATORY — use it exactly.
+- Make this shot FEEL DIFFERENT from what a generic model would output. Be cinematographic.
+- ${index === 0 ? 'This is the OPENING shot — establish the world, set the tone.' : ''}
+- ${index === totalSegments - 1 ? 'This is the CLOSING shot — provide resolution, linger on the final moment.' : ''}
+- ${segment.narrative_function === 'climax' ? 'This is a CLIMAX shot — maximize emotional intensity, use close-up or extreme close-up.' : ''}
+
+Generate ONE shot object now:`;
+
+    const response = await API.callDeepSeek(shotSystemPrompt, shotUserPrompt);
+    return this.parseJSONResponse(response);
+  },
+
+  // ---- Fallback: generate a minimal shot from segment data (no API call) ----
+  _fallbackShot(segment, index, totalSegments, duration) {
+    const segDuration = Math.round(duration / totalSegments);
+    const timeStart = index * segDuration;
+    const timeEnd = Math.min((index + 1) * segDuration, duration);
+    const divTemplate = DIVERSITY_TEMPLATES[index % DIVERSITY_TEMPLATES.length];
+
+    return {
+      id: index + 1,
+      shot_name: segment.narrative_function === 'establishing' ? '建立镜头' :
+                 segment.narrative_function === 'climax' ? '高潮镜头' :
+                 segment.narrative_function === 'resolution' ? '收尾镜头' : '发展镜头',
+      description_cn: segment.content + '（' + segment.emotion + '，视觉焦点：' + segment.visual_focus + '）',
+      prompt_en: 'A cinematic shot: ' + segment.content + '. ' + divTemplate.camera + ', ' + divTemplate.shot + ' shot, ' + divTemplate.focal + ' lens. ' + segment.emotion + ' mood. Natural smooth motion, no deformation, no watermark.',
+      camera_movement: divTemplate.camera,
+      shot_size: divTemplate.shot,
+      camera_angle: divTemplate.angle,
+      focal_length: divTemplate.focal,
+      duration_sec: segDuration,
+      time_mark: timeStart + '-' + timeEnd + 's',
+      constraints: ['Character face stable, no deformation', 'Natural smooth motion, no blur', 'No text overlay, no watermark']
+    };
   },
 
   async _generateImage(script, templateKey, styleAnalysis) {
