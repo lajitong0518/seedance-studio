@@ -1872,10 +1872,21 @@ const App = {
       if (file) this.handleScriptFile(file);
     });
 
-    // Prevent textarea from intercepting file drops
+    // Prevent textarea from stealing drops — delegate back to parent logic
     const scriptTA = document.getElementById('scriptInput');
-    scriptTA.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
-    scriptTA.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); });
+    scriptTA.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scriptDropZone.classList.add('dragover');
+    });
+    scriptTA.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scriptDragReset();
+      // get file from the event directly (textarea may receive the drop first)
+      const file = e.dataTransfer.files[0];
+      if (file) this.handleScriptFile(file);
+    });
 
     // Generate
     document.getElementById('generateBtn').addEventListener('click', () => this.generate());
