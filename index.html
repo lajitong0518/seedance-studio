@@ -725,7 +725,9 @@ Lighting: ${templateDefaults.lighting}` : '';
 [CRITICAL] Reference Image Visual Style (apply to ALL shots):
 ${styleAnalysis}` : '';
 
-  const shotCount = params.duration <= 5 ? '1 shot' : params.duration <= 10 ? '2-3 shots' : '3-5 shots';
+  const minShots = params.minShots || (params.duration <= 5 ? 1 : params.duration <= 10 ? 2 : 3);
+  const maxShots = params.maxShots || (params.duration <= 5 ? 1 : params.duration <= 10 ? 3 : 5);
+  const shotCount = minShots === maxShots ? minShots + ' shots' : minShots + '-' + maxShots + ' shots';
   const shotDuration = params.duration <= 5 ? '4-5s each' : '3-5s each';
 
   return `You are a professional AI video generation cinematographer. You translate creative briefs into precise, structured video prompts that a text-to-video AI model can execute consistently.
@@ -911,7 +913,10 @@ Problem: Style/color drift → Fix: Use one stronger style anchor, delete extra 
 ═══════════════════════════════════════════
 
 • Target duration: ${params.duration}s | Aspect ratio: ${params.aspect} | Shot plan: ${shotCount}
-• Each prompt_en: 50-80 words, structured as Subject → Action → Camera → Lighting → Style → Constraints${templateInfo}${styleInfo}
+• Each prompt_en: 50-80 words, structured as Subject → Action → Camera → Lighting → Style → Constraints
+
+⚠️ QUALITY MANDATE: You are NOT a template-filler. You are a cinematographer. Every shot must feel like it came from a different creative decision — vary shot sizes, camera movements, focal lengths, and lighting moods across shots. Long scripts REQUIRE more shots (aim for the UPPER end of the shot range). A 15s video with a detailed script must have at least 5 distinct shots. Do NOT output only 3 shots for a complex narrative — that is under-serving the user. Each prompt_en must be unique, not copy-pasted with minor word swaps.
+${templateInfo}${styleInfo}
 
 ═══════════════════════════════════════════
 OUTPUT FORMAT — Return ONLY valid JSON (no markdown fences, no extra text):
@@ -1401,6 +1406,20 @@ const Engine = {
   async _generateVideo(script, duration, aspect, templateKey, styleAnalysis) {
     const template = TEMPLATES[templateKey];
     const strategyNote = template ? '策略：' + template.strategy : '策略：根据文案内容自动判断最合适的风格和运镜方式';
+
+    // Adaptive shot count based on script length
+    const scriptLen = (script || '').length;
+    let minShots, maxShots;
+    if (duration <= 5) {
+      minShots = scriptLen > 200 ? 2 : 1; maxShots = 2;
+    } else if (duration <= 10) {
+      minShots = scriptLen > 500 ? 4 : 3; maxShots = scriptLen > 1000 ? 6 : 5;
+    } else {
+      minShots = scriptLen > 500 ? 5 : 4;
+      maxShots = scriptLen > 2000 ? 10 : (scriptLen > 1000 ? 8 : 7);
+    }
+    const shotNote = '必须生成 ' + minShots + '~' + maxShots + ' 个镜头（剧本长度 ' + scriptLen + ' 字，不允许低于下限）';
+
     const userLines = [
       '## 📝 用户文案/剧本',
       script || '（用户未输入具体文案，请根据模板策略自由创作一个展示性分镜）',
@@ -1408,7 +1427,8 @@ const Engine = {
       '## ⚙️ 参数要求',
       '- 总时长：' + duration + ' 秒',
       '- 画幅比例：' + aspect,
-      '- ' + strategyNote
+      '- ' + strategyNote,
+      '- ⚠️ ' + shotNote
     ];
 
     if (template) {
@@ -1420,13 +1440,17 @@ const Engine = {
 
     userLines.push('');
     userLines.push('## 🎯 输出要求');
-    userLines.push('请根据以上信息，生成一个结构化的视频分镜表。每个镜头的 prompt_en 必须是 50-80 词的英文提示词，遵循 Subject → Action → Camera → Lighting → Style → Constraints 的结构。');
+    userLines.push('1. 先仔细阅读剧本，识别关键场景节点和情绪转折点，拆解为 ' + minShots + '~' + maxShots + ' 个独立镜头');
+    userLines.push('2. 每个镜头必须有不同的景别和运镜方式，相邻镜头之间保持视觉连贯');
+    userLines.push('3. 每个镜头的 prompt_en 必须是 50-80 词的英文提示词，严格遵循 Subject → Action → Camera → Lighting → Style → Constraints 五维结构');
+    userLines.push('4. 整体需有完整的叙事弧线：建立 → 发展 → 高潮 → 收尾');
+    userLines.push('5. 质量优先：每个镜头都要像导演给摄影指导下的 briefing，具体、可视、电影级');
 
     UI.status('正在通过 DeepSeek V4 Pro 生成分镜...');
     const systemPrompt = buildSystemPrompt(
       template ? template.defaults : null,
       styleAnalysis,
-      { duration, aspect }
+      { duration, aspect, minShots, maxShots }
     );
     const userContent = userLines.join('\n');
     const response = await API.callDeepSeek(systemPrompt, userContent);
