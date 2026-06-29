@@ -445,12 +445,14 @@ select:focus { border-color: var(--accent); }
     <div class="form-group script-drop-zone" id="scriptDropZone">
       <div class="script-label-row">
         <label class="form-label" for="scriptInput">📖 文案 / 剧本描述</label>
-        <button class="script-upload-btn" id="scriptUploadBtn">📂 上传剧本</button>
+        <button class="script-upload-btn" id="scriptUploadBtn" type="button"
+          onclick="document.getElementById('scriptFileInput').click()">📂 上传剧本</button>
       </div>
-      <input type="file" id="scriptFileInput" accept=".txt,.md,.docx" hidden onchange="App.handleScriptFile(this.files[0]); this.value='';">
+      <input type="file" id="scriptFileInput" accept=".txt,.md,.docx" hidden
+        onchange="const f=this.files[0]; if(f) App.handleScriptFile(f); this.value='';">
       <textarea id="scriptInput" placeholder="描述你想生成的视频内容，例如：&#10;一个女孩站在雨夜的霓虹灯下，她缓缓抬起手接住落下的雨滴，眼神中带着释然的微笑。&#10;&#10;或者输入剧本段落，我们会自动拆解为分镜...&#10;&#10;💡 也可以拖拽 .txt / .md / .docx 剧本文件到此处，或点击上方「📂 上传剧本」按钮"
         ondragover="event.preventDefault(); this.parentElement.classList.add('dragover')"
-        ondragleave="this.parentElement.classList.remove('dragover')"
+        ondragleave="event.preventDefault(); this.parentElement.classList.remove('dragover')"
         ondrop="event.preventDefault(); this.parentElement.classList.remove('dragover'); const f=event.dataTransfer.files[0]; if(f) App.handleScriptFile(f)"
       ></textarea>
       <div class="script-file-badge" id="scriptFileBadge" style="display:none;"></div>
@@ -1832,65 +1834,8 @@ const App = {
       fileInput.value = '';
     });
 
-    // Script file upload (button click + drag & drop)
-    const scriptDropZone = document.getElementById('scriptDropZone');
-    const scriptFileInput = document.getElementById('scriptFileInput');
-
-    document.getElementById('scriptUploadBtn').addEventListener('click', () => {
-      scriptFileInput.click();
-    });
-    scriptFileInput.addEventListener('change', () => {
-      const f = scriptFileInput.files[0];
-      if (f) this.handleScriptFile(f);
-      scriptFileInput.value = '';
-    });
-
-    // Drag & drop script file onto the textarea area
-    let scriptDragCounter = 0;
-    const scriptDragReset = () => { scriptDragCounter = 0; scriptDropZone.classList.remove('dragover'); };
-
-    // dragover + preventDefault is REQUIRED to tell browser this zone accepts drops
-    scriptDropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      scriptDropZone.classList.add('dragover');
-    });
-    scriptDropZone.addEventListener('dragenter', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      scriptDragCounter++;
-    });
-    scriptDropZone.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      scriptDragCounter--;
-      if (scriptDragCounter <= 0) {
-        scriptDragReset();
-      }
-    });
-    scriptDropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      scriptDragReset();
-      const file = e.dataTransfer.files[0];
-      if (file) this.handleScriptFile(file);
-    });
-
-    // Prevent textarea from stealing drops — delegate back to parent logic
-    const scriptTA = document.getElementById('scriptInput');
-    scriptTA.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      scriptDropZone.classList.add('dragover');
-    });
-    scriptTA.addEventListener('drop', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      scriptDragReset();
-      // get file from the event directly (textarea may receive the drop first)
-      const file = e.dataTransfer.files[0];
-      if (file) this.handleScriptFile(file);
-    });
+    // Script file upload is handled via inline HTML events (onclick/onchange/ondrop)
+    // on the button, hidden file input, and textarea — no JS binding needed.
 
     // Generate
     document.getElementById('generateBtn').addEventListener('click', () => this.generate());
